@@ -1,0 +1,51 @@
+<div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-body-tertiary">
+  <h6 class="fw-bold text-body mb-3">
+    <i class="bi bi-diagram-3-fill text-primary me-2"></i>Etapa del Proceso de Titulación
+  </h6>
+
+  <div class="row g-2 text-center">
+    <!-- Etapa 1: Protocolo -->
+    <div class="col-md-3">
+      <div class="p-3 rounded-4 border {% if proyecto %}bg-success text-white border-success{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+        <i class="bi bi-file-earmark-check-fill fs-4 d-block mb-1"></i>
+        <small class="fw-bold d-block">1. Protocolo</small>
+        <span class="badge {% if proyecto %}bg-white text-success{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+          {% if proyecto %}Registrado{% else %}Pendiente{% endif %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Etapa 2: Director Asignado -->
+    <div class="col-md-3">
+      <div class="p-3 rounded-4 border {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' or proyecto.estado_proyecto == 'CONCLUIDO' %}bg-success text-white border-success{% elif proyecto.asesor %}bg-info bg-opacity-25 border-info text-body{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+        <i class="bi bi-person-check-fill fs-4 d-block mb-1"></i>
+        <small class="fw-bold d-block">2. Director Asignado</small>
+        <span class="badge {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}bg-white text-success{% elif proyecto.asesor %}bg-info text-dark{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+          {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}Ratificado{% elif proyecto.asesor %}Por Aprobar{% else %}Sin Asignar{% endif %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Etapa 3: Avances en PDF -->
+    <div class="col-md-3">
+      <div class="p-3 rounded-4 border {% if entregables %}bg-primary text-white border-primary{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+        <i class="bi bi-file-earmark-arrow-up-fill fs-4 d-block mb-1"></i>
+        <small class="fw-bold d-block">3. Revisiones PDF</small>
+        <span class="badge {% if entregables %}bg-white text-primary{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+          {{ entregables|length }} versión(es)
+        </span>
+      </div>
+    </div>
+
+    <!-- Etapa 4: Conclusión -->
+    <div class="col-md-3">
+      <div class="p-3 rounded-4 border {% if proyecto.estado_proyecto == 'CONCLUIDO' %}bg-success text-white border-success{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+        <i class="bi bi-award-fill fs-4 d-block mb-1"></i>
+        <small class="fw-bold d-block">4. Conclusión</small>
+        <span class="badge {% if proyecto.estado_proyecto == 'CONCLUIDO' %}bg-white text-success{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+          {% if proyecto.estado_proyecto == 'CONCLUIDO' %}Titulado{% else %}En Curso{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,188 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Panel del Coordinador — TesisManager FCC BUAP{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Efectos y contrastes adaptativos para los tabs del Coordinador */
+  #coordinadorTabs .nav-link {
+    transition: all 0.2s ease-in-out;
+  }
+  #coordinadorTabs .nav-link:not(.active):hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  #coordinadorTabs .nav-link.active {
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Notificaciones del Sistema -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small mb-4" role="alert">
+          <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado con buscador dinámico -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+      <div>
+        <h3 class="fw-bold text-body mb-1">
+          <i class="bi bi-person-badge text-primary me-2"></i>Panel de Coordinación de Posgrado
+        </h3>
+        <p class="text-secondary small mb-0">Supervisión escolar, gestión del claustro docente y monitoreo contra rezago.</p>
+      </div>
+
+      <div style="min-width: 280px; max-width: 420px;" class="w-100">
+        <div class="input-group shadow-sm">
+          <span class="input-group-text bg-body-tertiary border-end-0 text-secondary">
+            <i class="bi bi-search"></i>
+          </span>
+          <input type="text" 
+                 id="buscadorGeneral" 
+                 class="form-control border-start-0 ps-0" 
+                 placeholder="Buscar por nombre, correo o matrícula..." 
+                 autocomplete="off" 
+                 onkeyup="filtrarTabla()">
+          <button class="btn btn-outline-secondary" type="button" id="btnLimpiar" title="Limpiar búsqueda" onclick="limpiarBuscador()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Métricas / Tarjetas Superiores -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-body-tertiary border-start border-4 border-primary">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <small class="text-secondary fw-semibold text-uppercase">Alumnos Registrados</small>
+              <h2 class="fw-bold mb-0 text-body">{{ lista_alumnos|length }}</h2>
+            </div>
+            <div class="fs-1 text-primary"><i class="bi bi-mortarboard-fill"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-body-tertiary border-start border-4 border-warning">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <small class="text-secondary fw-semibold text-uppercase">Docentes por Aprobar</small>
+              <h2 class="fw-bold mb-0 text-body">{{ asesores_pendientes|length }}</h2>
+            </div>
+            <div class="fs-1 text-warning"><i class="bi bi-hourglass-split"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-body-tertiary border-start border-4 border-success">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <small class="text-secondary fw-semibold text-uppercase">Docentes Activos</small>
+              <h2 class="fw-bold mb-0 text-body">{{ asesores_activos|length }}</h2>
+            </div>
+            <div class="fs-1 text-success"><i class="bi bi-people-fill"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor Cápsula Estilizado de Pestañas (Tabs) -->
+    <div>
+      <ul class="nav nav-pills nav-fill gap-2 border-0 shadow-sm rounded-4 p-2 mb-4 bg-body-tertiary border" id="coordinadorTabs" role="tablist">
+        
+        <!-- Pestaña 1: Directorio de Tesistas -->
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active rounded-pill py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2" 
+                  id="tab-tesistas-btn" 
+                  data-bs-toggle="pill" 
+                  data-bs-target="#tab-tesistas" 
+                  type="button" 
+                  role="tab">
+            <i class="bi bi-mortarboard-fill fs-5"></i>
+            <span>Directorio de Tesistas</span>
+            <span class="badge bg-white text-primary rounded-pill shadow-sm ms-1">{{ lista_alumnos|length }}</span>
+          </button>
+        </li>
+
+        <!-- Pestaña 2: Docentes y Asesores -->
+        <li class="nav-item" role="presentation">
+          <button class="nav-link rounded-pill py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 text-body" 
+                  id="tab-docentes-btn" 
+                  data-bs-toggle="pill" 
+                  data-bs-target="#tab-docentes" 
+                  type="button" 
+                  role="tab">
+            <i class="bi bi-person-workspace fs-5 text-warning"></i>
+            <span>Docentes y Asesores</span>
+            {% if asesores_pendientes %}
+              <span class="badge bg-warning text-dark rounded-pill ms-1 shadow-sm">{{ asesores_pendientes|length }} pend.</span>
+            {% else %}
+              <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill ms-1">{{ asesores_activos|length }}</span>
+            {% endif %}
+          </button>
+        </li>
+
+        <!-- Pestaña 3: Equipo de Coordinación -->
+        <li class="nav-item" role="presentation">
+          <button class="nav-link rounded-pill py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 text-body" 
+                  id="tab-coord-btn" 
+                  data-bs-toggle="pill" 
+                  data-bs-target="#tab-coord" 
+                  type="button" 
+                  role="tab">
+            <i class="bi bi-shield-lock-fill fs-5 text-info"></i>
+            <span>Equipo de Coordinación</span>
+            <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill ms-1">{{ coordinadores_activos|length }}</span>
+          </button>
+        </li>
+
+      </ul>
+    </div>
+
+    <!-- Contenido Modular de las Pestañas -->
+    <div class="tab-content" id="coordinadorTabsContent">
+      <div class="tab-pane fade show active" id="tab-tesistas" role="tabpanel" aria-labelledby="tab-tesistas-btn">
+        {% include 'seguimiento/coordinador/includes/tab_tesistas.html' %}
+      </div>
+      <div class="tab-pane fade" id="tab-docentes" role="tabpanel" aria-labelledby="tab-docentes-btn">
+        {% include 'seguimiento/coordinador/includes/tab_docentes.html' %}
+      </div>
+      <div class="tab-pane fade" id="tab-coord" role="tabpanel" aria-labelledby="tab-coord-btn">
+        {% include 'seguimiento/coordinador/includes/tab_coordinadores.html' %}
+      </div>
+    </div>
+
+</div>
+
+<!-- Buscador en tiempo real por texto -->
+<script>
+  function filtrarTabla() {
+    const input = document.getElementById('buscadorGeneral');
+    const busqueda = input ? input.value.toLowerCase().trim() : '';
+    const filas = document.querySelectorAll('tbody tr');
+    filas.forEach(fila => {
+      const texto = fila.innerText.toLowerCase();
+      fila.style.display = texto.includes(busqueda) ? '' : 'none';
+    });
+  }
+
+  function limpiarBuscador() {
+    const input = document.getElementById('buscadorGeneral');
+    if (input) {
+      input.value = '';
+      filtrarTabla();
+      input.focus();
+    }
+  }
+</script>
+{% endblock %}

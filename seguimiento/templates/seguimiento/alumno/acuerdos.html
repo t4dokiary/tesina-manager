@@ -1,0 +1,574 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Mis Acuerdos y Minutas — TesisManager FCC BUAP{% endblock %}
+
+{% block extra_css %}
+<style>
+  .progress-custom {
+    height: 8px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  .card-kpi {
+    border-radius: 1rem;
+  }
+  /* Estilos del chat modal */
+  .chat-box-modal {
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .burbuja-alumno {
+    background-color: var(--bs-primary);
+    color: #ffffff;
+    border-radius: 1rem 1rem 0.2rem 1rem;
+    max-width: 80%;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    word-break: break-word;
+  }
+  .burbuja-asesor {
+    background-color: var(--bs-secondary-bg, #2a3b4c);
+    color: var(--bs-body-color, #e2e8f0);
+    border-radius: 1rem 1rem 1rem 0.2rem;
+    max-width: 80%;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    word-break: break-word;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  /* Card interactiva para fuentes PDF recomendadas */
+  .doc-card {
+    background: rgba(220, 53, 69, 0.08);
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.85rem;
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Notificaciones del Sistema -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado de la Sección -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold text-body mb-1">
+                <i class="bi bi-check2-square text-primary me-2"></i>Acuerdos, Citas y Minutas de Asesoría (CU03)
+            </h3>
+            <p class="text-secondary small mb-0">
+                <strong>Tesis:</strong> {{ proyecto.titulo_tesis }} &bull; 
+                <strong>Director:</strong> {{ proyecto.asesor.datos_asesor.grado_academico|default:"Prof." }} {{ proyecto.asesor.primer_nombre }} {{ proyecto.asesor.apellido_paterno }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'alumno_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm fw-semibold shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver a Mi Proyecto
+            </a>
+        </div>
+    </div>
+
+    <!-- TARJETAS DE MÉTRICAS Y RENDIMIENTO (KPIs) -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Porcentaje Total -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 bg-body-tertiary card-kpi border-start border-4 border-primary">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-secondary fw-semibold">Progreso de Compromisos</small>
+                    <span class="badge bg-primary rounded-pill px-2 py-1">{{ porcentaje_cumplimiento }}%</span>
+                </div>
+                <div class="progress progress-custom mb-2">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ porcentaje_cumplimiento }}%;" aria-valuenow="{{ porcentaje_cumplimiento }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <small class="text-secondary" style="font-size: 0.78rem;">
+                    {{ tareas_cumplidas }} de {{ total_tareas }} tareas validadas por tu director.
+                </small>
+            </div>
+        </div>
+
+        <!-- 2. Tareas Validadas -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 bg-body-tertiary card-kpi border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-secondary fw-semibold d-block">Tareas Cumplidas</small>
+                        <h4 class="fw-bold text-success mb-0">{{ tareas_cumplidas }}</h4>
+                    </div>
+                    <div class="p-3 bg-success bg-opacity-10 text-success rounded-circle">
+                        <i class="bi bi-patch-check-fill fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-secondary mt-1 d-block" style="font-size: 0.78rem;">Revisadas y aprobadas en sesión</small>
+            </div>
+        </div>
+
+        <!-- 3. Tareas Pendientes -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 bg-body-tertiary card-kpi border-start border-4 border-warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-secondary fw-semibold d-block">Tareas Pendientes</small>
+                        <h4 class="fw-bold text-warning mb-0">{{ tareas_pendientes }}</h4>
+                    </div>
+                    <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-circle">
+                        <i class="bi bi-clock-history fs-4"></i>
+                    </div>
+                </div>
+                <small class="text-secondary mt-1 d-block" style="font-size: 0.78rem;">Por atender o entregar en borrador</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas de Navegación -->
+    <div class="card border-0 shadow-sm rounded-4 p-2 mb-4 bg-body-tertiary border">
+        <ul class="nav nav-pills nav-fill gap-2" id="acuerdosTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active rounded-pill py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2" 
+                        id="tab-tareas-btn" 
+                        data-bs-toggle="pill" 
+                        data-bs-target="#tab-tareas" 
+                        type="button" 
+                        role="tab">
+                    <i class="bi bi-card-checklist fs-5"></i>
+                    <span>Mis Compromisos y Tareas</span>
+                    <span class="badge bg-white text-primary rounded-pill shadow-sm ms-1">{{ total_tareas }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill py-2 px-3 fw-bold d-flex align-items-center justify-content-center gap-2 text-body" 
+                        id="tab-minutas-btn" 
+                        data-bs-toggle="pill" 
+                        data-bs-target="#tab-minutas" 
+                        type="button" 
+                        role="tab">
+                    <i class="bi bi-journal-text fs-5 text-info"></i>
+                    <span>Sesiones y Minutas Formalizadas</span>
+                    <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill ms-1">{{ minutas|length }}</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Contenido de las Pestañas -->
+    <div class="tab-content" id="acuerdosTabsContent">
+
+        <!-- ==================== PESTAÑA 1: LISTADO DE COMPROMISOS ==================== -->
+        <div class="tab-pane fade show active" id="tab-tareas" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-body-tertiary">
+                <div class="card-header py-3 bg-body d-flex justify-content-between align-items-center border-bottom">
+                    <h6 class="fw-bold mb-0 text-body">
+                        <i class="bi bi-list-task text-primary me-2"></i>Compromisos Asignados para Entrega
+                    </h6>
+                    <small class="text-secondary">Validados por el asesor al recibir tu avance en PDF.</small>
+                </div>
+
+                <div class="card-body p-0">
+                    {% if todos_los_acuerdos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4" style="width: 35%;">Tarea / Compromiso</th>
+                                        <th style="width: 20%;">Fecha Límite</th>
+                                        <th style="width: 25%;">Sesión de Origen</th>
+                                        <th class="text-end pe-4" style="width: 20%;">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ac in todos_los_acuerdos %}
+                                        <tr>
+                                            <td class="ps-4">
+                                                <div class="fw-semibold text-body">{{ ac.descripcion_tarea }}</div>
+                                                <small class="text-secondary">Responsable: <strong>{{ ac.get_responsable_display|default:ac.responsable }}</strong></small>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold text-body small">
+                                                    <i class="bi bi-calendar-event me-1 text-secondary"></i>
+                                                    {{ ac.fecha_limite|date:"d/m/Y" }}
+                                                </div>
+                                                {% if ac.estado == 'CUMPLIDO' or ac.estado_cumplido %}
+                                                    <small class="text-success"><i class="bi bi-check-all"></i> Concluida</small>
+                                                {% elif ac.fecha_limite < hoy %}
+                                                    <span class="badge bg-danger text-white rounded-pill mt-1" style="font-size: 0.68rem;">Plazo Vencido</span>
+                                                {% else %}
+                                                    <small class="text-warning"><i class="bi bi-hourglass-split"></i> En periodo de desarrollo</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if ac.minuta.lugar_reunion == "Asignación directa de tareas" %}
+                                                    <span class="badge bg-info-subtle text-info border border-info rounded-pill px-2 py-1" style="font-size: 0.72rem;">
+                                                        <i class="bi bi-arrow-right-short"></i> Asignación Directa
+                                                    </span>
+                                                {% else %}
+                                                    <small class="text-body fw-semibold d-block">Sesión del {{ ac.minuta.fecha_reunion|date:"d/m/Y" }}</small>
+                                                    {% if ac.minuta.version_revisada %}
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill mt-1" style="font-size: 0.68rem;">
+                                                            Revisión v{{ ac.minuta.version_revisada.numero_version }}
+                                                        </span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                {% if ac.estado == 'CUMPLIDO' or ac.estado_cumplido %}
+                                                    <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-2 shadow-sm">
+                                                        <i class="bi bi-check-circle-fill me-1"></i> Cumplido
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning-subtle text-warning border border-warning rounded-pill px-3 py-2 shadow-sm">
+                                                        <i class="bi bi-clock-history me-1"></i> Pendiente
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-secondary">
+                            <i class="bi bi-clipboard-check fs-1 text-success opacity-50 d-block mb-2"></i>
+                            <h6 class="fw-bold text-body">Sin compromisos asignados</h6>
+                            <p class="small text-secondary mb-0">No cuentas con tareas pendientes registradas en este momento.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PESTAÑA 2: SESIONES, LINKS, PDFs Y CHAT DIRECTO ==================== -->
+        <div class="tab-pane fade" id="tab-minutas" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-body-tertiary">
+                <div class="card-header py-3 bg-body d-flex justify-content-between align-items-center border-bottom">
+                    <h6 class="fw-bold mb-0 text-body">
+                        <i class="bi bi-journal-bookmark text-primary me-2"></i>Historial de Minutas de Asesoría
+                    </h6>
+                    <span class="badge bg-primary rounded-pill">{{ minutas|length }} sesión{{ minutas|length|pluralize:"es" }}</span>
+                </div>
+
+                <div class="card-body p-0">
+                    {% if minutas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4" style="width: 18%;">Fecha y Cita</th>
+                                        <th style="width: 25%;">Lugar / Plataforma</th>
+                                        <th style="width: 25%;">Observaciones de Asesoría</th>
+                                        <th style="width: 15%;">Versión / Chat</th>
+                                        <th class="text-end pe-4" style="width: 17%;">Firma Asistencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for m in minutas %}
+                                        <tr>
+                                            <!-- Fecha y Consecutivo -->
+                                            <td class="ps-4">
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <span class="badge bg-primary rounded-pill px-2 py-1" style="font-size: 0.72rem;">#{{ forloop.revcounter }}</span>
+                                                    <span class="fw-bold text-body">{{ m.fecha_reunion|date:"d/m/Y" }}</span>
+                                                </div>
+                                                <small class="text-secondary d-block">
+                                                    {% if m.hora_reunion %}{{ m.hora_reunion|time:"H:i" }} hrs &bull; {% endif %}
+                                                    {{ m.get_modalidad_display|default:m.modalidad }}
+                                                </small>
+                                            </td>
+
+                                            <!-- Ubicación o Enlace Virtual -->
+                                            <td>
+                                                {% if 'http' in m.lugar_reunion or 'teams.microsoft.com' in m.lugar_reunion or 'meet.google.com' in m.lugar_reunion %}
+                                                    <a href="{{ m.lugar_reunion }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                                                        <i class="bi bi-camera-video-fill text-primary"></i>
+                                                        <span>Unirse a Teams / Meet</span>
+                                                        <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.7rem;"></i>
+                                                    </a>
+                                                {% else %}
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <i class="bi bi-geo-alt-fill text-danger"></i>
+                                                        <span class="small fw-semibold text-body">{{ m.lugar_reunion|default:"Cubículo del Asesor" }}</span>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Observaciones y Fuentes PDF -->
+                                            <td>
+                                                <p class="small text-body mb-2" style="max-width: 320px;">{{ m.resumen_temas|truncatechars:120 }}</p>
+                                                
+                                                <!-- PDFs Recomendados -->
+                                                {% if m.materiales.all %}
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        {% for mat in m.materiales.all %}
+                                                            <a href="{{ mat.archivo_pdf.url }}" target="_blank" class="doc-card text-decoration-none d-inline-flex align-items-center gap-1 py-1 px-2" title="{{ mat.titulo }}">
+                                                                <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                                                                <small class="text-danger fw-bold" style="font-size: 0.72rem;">{{ mat.titulo|truncatechars:20 }}</small>
+                                                                <i class="bi bi-download text-secondary ms-1" style="font-size: 0.7rem;"></i>
+                                                            </a>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Versión Revisada y BOTÓN DE CHAT DIRECTO -->
+                                            <td>
+                                                {% if m.version_revisada %}
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 mb-1 d-inline-block">
+                                                        Versión v{{ m.version_revisada.numero_version }}
+                                                    </span>
+                                                    <div>
+                                                        <!-- Abre directamente el chat de esa versión -->
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-info rounded-pill px-3 py-1 shadow-sm d-inline-flex align-items-center gap-1"
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#modalChatAlumno{{ m.version_revisada.id_entregable }}">
+                                                            <i class="bi bi-chat-dots-fill"></i>
+                                                            <span style="font-size: 0.78rem;">Ver Chat ({{ m.version_revisada.mensajes.count }})</span>
+                                                        </button>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-secondary small fst-italic">Sin versión ligada</span>
+                                                {% endif %}
+                                            </td>
+
+                                            <!-- Firma de Asistencia -->
+                                            <td class="text-end pe-4">
+                                                {% if m.firmada_alumno %}
+                                                    <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-2 shadow-sm">
+                                                        <i class="bi bi-check2-all me-1"></i> Asistencia Firmada
+                                                    </span>
+                                                {% else %}
+                                                    <form action="{% url 'firmar_minuta_alumno' m.id_minuta %}" method="post" class="d-inline">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm fw-semibold" onclick="return confirm('¿Confirmas de conformidad tu asistencia a esta reunión de asesoría?');">
+                                                            <i class="bi bi-pen-fill me-1"></i> Firmar Visita
+                                                        </button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 text-secondary">
+                            <i class="bi bi-journal-x fs-1 opacity-50 d-block mb-2"></i>
+                            <h6 class="fw-bold text-body">Aún no se han celebrado minutas</h6>
+                            <p class="small text-secondary mb-0">Cuando tu director formalice una sesión, aquí se reflejará el acta oficial de la reunión.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ========================================================================== -->
+<!-- MODALES DE CHAT POR VERSIÓN (SE ABREN DIRECTO DESDE LA MINUTA CON AJAX)    -->
+<!-- ========================================================================== -->
+{% for e in entregas %}
+<div class="modal fade" 
+     id="modalChatAlumno{{ e.id_entregable }}" 
+     data-bs-backdrop="static" 
+     data-bs-keyboard="false" 
+     tabindex="-1" 
+     aria-labelledby="modalChatAlumnoLabel{{ e.id_entregable }}" 
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 rounded-4 shadow-lg" style="background-color: var(--bs-body-bg);">
+      
+      <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+        <div>
+          <h5 class="modal-title fw-bold text-body mb-0" id="modalChatAlumnoLabel{{ e.id_entregable }}">
+            <i class="bi bi-chat-dots-fill text-primary me-2"></i>Discusión y Retroalimentación — Versión {{ e.numero_version }}
+          </h5>
+          <small class="text-secondary">
+            Borrador del {{ e.fecha_hora_subida|date:"d/m/Y H:i" }} hrs &bull; 
+            <strong>Director:</strong> {{ proyecto.asesor.primer_nombre }} {{ proyecto.asesor.apellido_paterno }}
+          </small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body py-3">
+        
+        {% if e.archivo_correccion_asesor %}
+          <div class="p-3 mb-3 rounded-4 bg-success bg-opacity-10 border border-success border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2 shadow-sm">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-file-earmark-check-fill text-success fs-3"></i>
+              <div>
+                <strong class="text-success small d-block">¡El Asesor adjuntó un PDF corregido para esta versión!</strong>
+                <small class="text-secondary">Contiene notas al margen y observaciones de tu tesis.</small>
+              </div>
+            </div>
+            <a href="{{ e.archivo_correccion_asesor.url }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
+              <i class="bi bi-download me-1"></i> Abrir PDF Corregido
+            </a>
+          </div>
+        {% endif %}
+
+        <h6 class="small fw-bold text-secondary text-uppercase mb-2">Mensajes del hilo:</h6>
+        
+        <!-- Caja de Mensajes -->
+        <div class="chat-box-modal d-flex flex-column gap-3 mb-3" id="chatBoxAlumno{{ e.id_entregable }}">
+          {% for msg in e.mensajes.all %}
+            {% if msg.emisor.tipo_usuario == 'ALUMNO' %}
+              <div class="d-flex flex-column align-items-end">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>Tú (Alumno)</strong> &bull; {{ msg.fecha_hora|date:"d/m/Y H:i" }}
+                </small>
+                <div class="burbuja-alumno shadow-sm">
+                  {{ msg.mensaje }}
+                </div>
+              </div>
+            {% else %}
+              <div class="d-flex flex-column align-items-start">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>{{ msg.emisor.datos_asesor.grado_academico|default:"Prof." }} {{ msg.emisor.primer_nombre }} {{ msg.emisor.apellido_paterno }} (Asesor)</strong> &bull; {{ msg.fecha_hora|date:"d/m/Y H:i" }}
+                </small>
+                <div class="burbuja-asesor shadow-sm">
+                  {{ msg.mensaje }}
+                </div>
+              </div>
+            {% endif %}
+          {% empty %}
+            {% if e.comentario_alumno %}
+              <div class="d-flex flex-column align-items-end">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>Tú (Alumno)</strong> &bull; {{ e.fecha_hora_subida|date:"d/m/Y H:i" }}
+                </small>
+                <div class="burbuja-alumno shadow-sm">
+                  {{ e.comentario_alumno }}
+                </div>
+              </div>
+            {% endif %}
+            {% if e.retroalimentacion_asesor %}
+              <div class="d-flex flex-column align-items-start mt-2">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>{{ proyecto.asesor.primer_nombre }} (Asesor)</strong>
+                </small>
+                <div class="burbuja-asesor shadow-sm">
+                  {{ e.retroalimentacion_asesor }}
+                </div>
+              </div>
+            {% endif %}
+            {% if not e.comentario_alumno and not e.retroalimentacion_asesor %}
+              <div class="text-center py-4 text-secondary small placeholder-vacio">
+                <i class="bi bi-chat-left-dots fs-3 opacity-50 d-block mb-1"></i>
+                Sin mensajes registrados en esta entrega.
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <!-- FORMULARIO AJAX PARA ENVIAR MENSAJES SIN CERRAR EL MODAL -->
+        <form id="formChatAlumno{{ e.id_entregable }}" onsubmit="enviarMensajeAjax(event, '{{ e.id_entregable }}', '{% url 'enviar_mensaje_entrega' e.id_entregable %}')">
+          {% csrf_token %}
+          <div class="input-group input-group-lg shadow-sm">
+            <input type="text" 
+                   id="inputMensaje{{ e.id_entregable }}"
+                   name="mensaje" 
+                   class="form-control rounded-start-pill ps-4 fs-6" 
+                   placeholder="Escribe una duda o respuesta sobre la versión v{{ e.numero_version }}..." 
+                   required 
+                   autocomplete="off">
+            <button type="submit" class="btn btn-primary rounded-end-pill px-4 fw-semibold" id="btnEnviar{{ e.id_entregable }}">
+              <i class="bi bi-send-fill me-1"></i> Enviar
+            </button>
+          </div>
+        </form>
+
+      </div>
+
+      <div class="modal-footer border-top border-secondary border-opacity-25 pt-2">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 btn-sm" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Script AJAX y Scroll -->
+<script>
+  function enviarMensajeAjax(event, idEntregable, urlDestino) {
+    event.preventDefault();
+
+    const inputMsg = document.getElementById('inputMensaje' + idEntregable);
+    const texto = inputMsg.value.trim();
+    if (!texto) return;
+
+    const btnEnviar = document.getElementById('btnEnviar' + idEntregable);
+    btnEnviar.disabled = true;
+
+    const formData = new FormData();
+    formData.append('mensaje', texto);
+
+    const csrfToken = document.querySelector('#formChatAlumno' + idEntregable + ' [name=csrfmiddlewaretoken]').value;
+
+    fetch(urlDestino, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': csrfToken
+      },
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      btnEnviar.disabled = false;
+      if (data.status === 'ok') {
+        const chatBox = document.getElementById('chatBoxAlumno' + idEntregable);
+        const vacio = chatBox.querySelector('.placeholder-vacio');
+        if (vacio) vacio.remove();
+
+        const nuevaFila = document.createElement('div');
+        nuevaFila.className = 'd-flex flex-column align-items-end';
+        nuevaFila.innerHTML = `
+          <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+            <strong>Tú (Alumno)</strong> &bull; ${data.fecha_hora}
+          </small>
+          <div class="burbuja-alumno shadow-sm">
+            ${data.mensaje}
+          </div>
+        `;
+        chatBox.appendChild(nuevaFila);
+
+        inputMsg.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    })
+    .catch(err => {
+      btnEnviar.disabled = false;
+      console.error("Error al enviar mensaje:", err);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+      modal.addEventListener('shown.bs.modal', function () {
+        const chatBox = this.querySelector('.chat-box-modal');
+        if (chatBox) {
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

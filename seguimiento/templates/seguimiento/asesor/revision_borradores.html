@@ -1,0 +1,429 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Revisión de Borradores — Asesor TesisManager{% endblock %}
+
+{% block extra_css %}
+<style>
+  .chat-box-modal {
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .burbuja-asesor {
+    background-color: var(--bs-primary);
+    color: #ffffff;
+    border-radius: 1rem 1rem 0.2rem 1rem;
+    max-width: 80%;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    word-break: break-word;
+  }
+  .burbuja-alumno {
+    background-color: var(--bs-secondary-bg, #2a3b4c);
+    color: var(--bs-body-color, #e2e8f0);
+    border-radius: 1rem 1rem 1rem 0.2rem;
+    max-width: 80%;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    word-break: break-word;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Notificaciones del Sistema -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Navegación de retorno -->
+    <div class="mb-3">
+        <a href="{% url 'asesor_dashboard' %}" class="text-decoration-none small text-body-secondary fw-semibold">
+            <i class="bi bi-arrow-left me-1"></i> Volver a Mis Tesistas
+        </a>
+    </div>
+
+    <!-- Encabezado del Expediente -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 border-start border-4 border-primary bg-body-tertiary">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge bg-primary px-3 py-1 rounded-pill mb-2">Expediente de Revisión (CU02)</span>
+                <h4 class="fw-bold mb-1 text-body">{{ proyecto.titulo_tesis }}</h4>
+                <p class="text-secondary small mb-0">
+                    <strong>Tesista:</strong> {{ proyecto.alumno.primer_nombre }} {{ proyecto.alumno.apellido_paterno }}
+                    {% if proyecto.alumno.datos_alumno.matricula %}
+                        | <strong>Matrícula:</strong> {{ proyecto.alumno.datos_alumno.matricula }}
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'asesor_minuta' proyecto.id_proyecto %}" class="btn btn-outline-primary btn-sm rounded-pill fw-semibold px-3 shadow-sm">
+                    <i class="bi bi-journal-plus me-1"></i> Levantar Minuta
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Limpia de Entregas -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-body-tertiary mb-4">
+        <div class="card-header py-3 bg-body d-flex justify-content-between align-items-center border-bottom">
+            <h6 class="fw-bold mb-0 text-body">
+                <i class="bi bi-clock-history text-primary me-2"></i>Historial de Entregas y Evaluaciones
+            </h6>
+            <span class="badge bg-primary rounded-pill">{{ entregables.count|default:0 }} versión(es)</span>
+        </div>
+
+        <div class="card-body p-0">
+            {% if entregables %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Versión</th>
+                                <th>Fecha Entrega</th>
+                                <th>Documento Alumno</th>
+                                <th>Corrección Asesor</th>
+                                <th class="text-end pe-4">Discusión / Chat</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in entregables %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="badge bg-primary rounded-pill px-3 py-1 fw-bold">v{{ e.numero_version }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-secondary d-block">{{ e.fecha_hora_subida|date:"d/m/Y" }}</small>
+                                        <small class="fw-semibold text-body">{{ e.fecha_hora_subida|date:"H:i" }} hrs</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ e.ruta_archivo_pdf.url }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Ver PDF Alumno
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if e.archivo_correccion_asesor %}
+                                            <a href="{{ e.archivo_correccion_asesor.url }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                                                <i class="bi bi-check-circle-fill me-1"></i> PDF Anotado
+                                            </a>
+                                        {% else %}
+                                            <span class="badge bg-secondary bg-opacity-25 text-body">Sin archivo devuelto</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm d-inline-flex align-items-center gap-1" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modalChatAsesor{{ e.id_entregable }}">
+                                            <i class="bi bi-chat-dots-fill"></i>
+                                            <span>Evaluar / Chat ({{ e.mensajes.count }})</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-secondary">
+                    <i class="bi bi-file-earmark-x fs-1 d-block mb-2 opacity-50"></i>
+                    <h6 class="fw-bold text-body">No hay avances en PDF entregados aún</h6>
+                    <p class="small mb-0">El estudiante aún no ha cargado ningún borrador para esta tesis.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- MODALES DE CHAT INDIVIDUAL (VENTANA PRINCIPAL DE DISCUSIÓN)    -->
+<!-- ============================================================== -->
+{% for e in entregables %}
+<div class="modal fade" 
+     id="modalChatAsesor{{ e.id_entregable }}" 
+     data-bs-backdrop="static" 
+     data-bs-keyboard="false" 
+     tabindex="-1" 
+     aria-labelledby="modalChatAsesorLabel{{ e.id_entregable }}" 
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 rounded-4 shadow-lg" style="background-color: var(--bs-body-bg);">
+      
+      <!-- Cabecera -->
+      <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+        <div>
+          <h5 class="modal-title fw-bold text-body mb-0" id="modalChatAsesorLabel{{ e.id_entregable }}">
+            <i class="bi bi-chat-dots-fill text-primary me-2"></i>Evaluación y Discusión — Versión {{ e.numero_version }}
+          </h5>
+          <small class="text-secondary">
+            Borrador del {{ e.fecha_hora_subida|date:"d/m/Y H:i" }} hrs &bull; 
+            <strong>Tesista:</strong> {{ proyecto.alumno.primer_nombre }} {{ proyecto.alumno.apellido_paterno }}
+          </small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body py-3">
+        
+        <!-- Indicador de archivo con opción de gestión -->
+        {% if e.archivo_correccion_asesor %}
+          <div class="p-2 px-3 mb-3 rounded-4 bg-success bg-opacity-10 border border-success border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2 shadow-sm">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-file-earmark-check-fill text-success fs-4"></i>
+              <div>
+                <strong class="text-success small d-block">PDF con correcciones adjuntado</strong>
+                <small class="text-secondary">Visible para el tesista en su panel institucional.</small>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{{ e.archivo_correccion_asesor.url }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                <i class="bi bi-download me-1"></i> Ver PDF
+              </a>
+              <button type="button" class="btn btn-sm btn-success rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalSubirPdfAsesor{{ e.id_entregable }}">
+                <i class="bi bi-pencil-square me-1"></i> Reemplazar
+              </button>
+            </div>
+          </div>
+        {% endif %}
+
+        <h6 class="small fw-bold text-secondary text-uppercase mb-2">Historial de Comunicación:</h6>
+        
+        <!-- Contenedor del Chat -->
+        <div class="chat-box-modal d-flex flex-column gap-3 mb-3" id="chatBoxAsesor{{ e.id_entregable }}">
+          {% for msg in e.mensajes.all %}
+            {% if msg.emisor.tipo_usuario == 'ASESOR' %}
+              <div class="d-flex flex-column align-items-end">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>Tú (Asesor)</strong> &bull; {{ msg.fecha_hora|date:"d/m/Y H:i" }}
+                </small>
+                <div class="burbuja-asesor shadow-sm">
+                  {{ msg.mensaje }}
+                </div>
+              </div>
+            {% else %}
+              <div class="d-flex flex-column align-items-start">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>{{ msg.emisor.primer_nombre }} {{ msg.emisor.apellido_paterno }} (Alumno)</strong> &bull; {{ msg.fecha_hora|date:"d/m/Y H:i" }}
+                </small>
+                <div class="burbuja-alumno shadow-sm">
+                  {{ msg.mensaje }}
+                </div>
+              </div>
+            {% endif %}
+          {% empty %}
+            {% if e.comentario_alumno %}
+              <div class="d-flex flex-column align-items-start">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>{{ proyecto.alumno.primer_nombre }} (Alumno)</strong> &bull; {{ e.fecha_hora_subida|date:"d/m/Y H:i" }}
+                </small>
+                <div class="burbuja-alumno shadow-sm">
+                  {{ e.comentario_alumno }}
+                </div>
+              </div>
+            {% endif %}
+            {% if e.retroalimentacion_asesor %}
+              <div class="d-flex flex-column align-items-end mt-2">
+                <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+                  <strong>Tú (Asesor)</strong>
+                </small>
+                <div class="burbuja-asesor shadow-sm">
+                  {{ e.retroalimentacion_asesor }}
+                </div>
+              </div>
+            {% endif %}
+            {% if not e.comentario_alumno and not e.retroalimentacion_asesor %}
+              <div class="text-center py-4 text-secondary small placeholder-vacio-asesor">
+                <i class="bi bi-chat-left-dots fs-3 opacity-50 d-block mb-1"></i>
+                Sin comentarios aún en esta versión.
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <!-- Barra de envío compacta con botón para adjuntar PDF -->
+        <form id="formChatAsesor{{ e.id_entregable }}" onsubmit="enviarMensajeAsesorAjax(event, '{{ e.id_entregable }}', '{% url 'enviar_mensaje_entrega' e.id_entregable %}')">
+          {% csrf_token %}
+          <div class="input-group input-group-lg shadow-sm">
+            <!-- Botón de archivo que abre el modal secundario -->
+            <button type="button" 
+                    class="btn {% if e.archivo_correccion_asesor %}btn-success text-white{% else %}btn-outline-secondary{% endif %} rounded-start-pill px-3" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#modalSubirPdfAsesor{{ e.id_entregable }}"
+                    title="{% if e.archivo_correccion_asesor %}PDF cargado: haz clic para reemplazar{% else %}Adjuntar PDF con correcciones{% endif %}">
+              <i class="bi {% if e.archivo_correccion_asesor %}bi-file-earmark-check-fill{% else %}bi-paperclip{% endif %} fs-5"></i>
+              {% if e.archivo_correccion_asesor %}
+                <span class="badge bg-white text-success rounded-pill ms-1" style="font-size: 0.65rem;">Cargado</span>
+              {% endif %}
+            </button>
+
+            <!-- Campo de texto -->
+            <input type="text" 
+                   id="inputMensajeAsesor{{ e.id_entregable }}"
+                   name="mensaje" 
+                   class="form-control ps-3 fs-6" 
+                   placeholder="Escribe tus observaciones o respuesta sobre la v{{ e.numero_version }}..." 
+                   required
+                   autocomplete="off">
+
+            <!-- Botón de envío -->
+            <button type="submit" class="btn btn-primary rounded-end-pill px-4 fw-semibold" id="btnEnviarAsesor{{ e.id_entregable }}">
+              <i class="bi bi-send-fill me-1"></i> Enviar
+            </button>
+          </div>
+        </form>
+
+      </div>
+
+      <div class="modal-footer border-top border-secondary border-opacity-25 pt-2">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 btn-sm" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL SECUNDARIO: SUBIDA Y EDICIÓN DEL PDF ANOTADO DEL ASESOR  -->
+<!-- ============================================================== -->
+<div class="modal fade" 
+     id="modalSubirPdfAsesor{{ e.id_entregable }}" 
+     data-bs-backdrop="static" 
+     data-bs-keyboard="false" 
+     tabindex="-1" 
+     aria-labelledby="modalSubirPdfAsesorLabel{{ e.id_entregable }}" 
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4 shadow-lg" style="background-color: var(--bs-body-bg);">
+      
+      <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+        <h5 class="modal-title fw-bold text-body" id="modalSubirPdfAsesorLabel{{ e.id_entregable }}">
+          <i class="bi bi-file-earmark-pdf-fill text-success me-2"></i>
+          {% if e.archivo_correccion_asesor %}Reemplazar PDF de Correcciones{% else %}Adjuntar PDF con Correcciones{% endif %}
+        </h5>
+        <!-- Al cerrar vuelve al modal de chat -->
+        <button type="button" class="btn-close" data-bs-toggle="modal" data-bs-target="#modalChatAsesor{{ e.id_entregable }}" aria-label="Volver"></button>
+      </div>
+
+      <form method="post" action="{% url 'asesor_revision' proyecto.id_proyecto %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="entregable_id" value="{{ e.id_entregable }}">
+
+        <div class="modal-body py-3">
+          {% if e.archivo_correccion_asesor %}
+            <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-3">
+              <i class="bi bi-info-circle me-1"></i> Ya existe un archivo registrado: 
+              <a href="{{ e.archivo_correccion_asesor.url }}" target="_blank" class="fw-bold text-decoration-none text-info">Ver documento actual</a>.
+              Al cargar uno nuevo, se sustituirá de forma inmediata.
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">
+              Seleccionar documento corregido (.PDF) *
+            </label>
+            <input type="file" name="archivo_correccion" class="form-control" accept=".pdf,application/pdf" required>
+            <div class="form-text small text-secondary mt-1">
+              <i class="bi bi-shield-check me-1"></i> El archivo debe estar en formato PDF.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top border-secondary border-opacity-25 pt-2">
+          <!-- Regresar al chat sin cambios -->
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalChatAsesor{{ e.id_entregable }}">
+            Cancelar
+          </button>
+          <!-- Guardar archivo -->
+          <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm">
+            <i class="bi bi-cloud-arrow-up-fill me-1"></i> 
+            {% if e.archivo_correccion_asesor %}Guardar y Reemplazar{% else %}Confirmar y Subir{% endif %}
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+  function enviarMensajeAsesorAjax(event, idEntregable, urlDestino) {
+    event.preventDefault();
+
+    const inputMsg = document.getElementById('inputMensajeAsesor' + idEntregable);
+    const texto = inputMsg.value.trim();
+    if (!texto) return;
+
+    const btnEnviar = document.getElementById('btnEnviarAsesor' + idEntregable);
+    btnEnviar.disabled = true;
+
+    const formData = new FormData();
+    formData.append('mensaje', texto);
+
+    const csrfToken = document.querySelector('#formChatAsesor' + idEntregable + ' [name=csrfmiddlewaretoken]').value;
+
+    fetch(urlDestino, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': csrfToken
+      },
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      btnEnviar.disabled = false;
+      if (data.status === 'ok') {
+        const chatBox = document.getElementById('chatBoxAsesor' + idEntregable);
+        const vacio = chatBox.querySelector('.placeholder-vacio-asesor');
+        if (vacio) vacio.remove();
+
+        const nuevaFila = document.createElement('div');
+        nuevaFila.className = 'd-flex flex-column align-items-end';
+        nuevaFila.innerHTML = `
+          <small class="text-secondary px-2 mb-1" style="font-size: 0.72rem;">
+            <strong>Tú (Asesor)</strong> &bull; ${data.fecha_hora}
+          </small>
+          <div class="burbuja-asesor shadow-sm">
+            ${data.mensaje}
+          </div>
+        `;
+        chatBox.appendChild(nuevaFila);
+
+        inputMsg.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    })
+    .catch(err => {
+      btnEnviar.disabled = false;
+      console.error("Error al enviar mensaje:", err);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+      modal.addEventListener('shown.bs.modal', function () {
+        const chatBox = this.querySelector('.chat-box-modal');
+        if (chatBox) {
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

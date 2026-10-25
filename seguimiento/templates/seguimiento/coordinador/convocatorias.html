@@ -1,0 +1,157 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Convocatorias y Fechas - Coordinación FCC{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Mensajes de notificación -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="bi bi-calendar-event text-primary me-2"></i>Convocatorias y Fechas Límite
+            </h3>
+            <p class="text-muted small mb-0">Establece los periodos oficiales para inscripción, entrega de protocolos y revisiones.</p>
+        </div>
+        <button class="btn btn-primary fw-semibold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#panelNuevaConvocatoria">
+            <i class="bi bi-plus-circle me-1"></i> Publicar Nueva Convocatoria
+        </button>
+    </div>
+
+    <!-- Formulario Desplegable para Crear Convocatoria -->
+    <div class="collapse mb-4" id="panelNuevaConvocatoria">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h5 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                <i class="bi bi-pencil-square me-1"></i> Datos de la Convocatoria
+            </h5>
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold small">Título de la Convocatoria</label>
+                        {{ form.titulo }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Periodo Escolar</label>
+                        {{ form.periodo }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold small">Descripción o Indicaciones</label>
+                        {{ form.descripcion }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Fecha de Inicio</label>
+                        {{ form.fecha_inicio }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small text-danger">Límite Entrega Protocolo</label>
+                        {{ form.fecha_limite_protocolo }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Fecha de Fin / Cierre</label>
+                        {{ form.fecha_cierre }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">Estado Inicial</label>
+                        {{ form.estado }}
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#panelNuevaConvocatoria">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-semibold">
+                        <i class="bi bi-check2-circle me-1"></i> Guardar y Publicar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Listado de Convocatorias -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-dark">Periodos Registrados</h5>
+            <span class="badge bg-primary-subtle text-primary">{{ convocatorias.count }} registros</span>
+        </div>
+        <div class="card-body p-0">
+            {% if convocatorias %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Convocatoria / Periodo</th>
+                                <th>Inicio</th>
+                                <th>Límite de Protocolo</th>
+                                <th>Fin del Periodo</th>
+                                <th>Estado</th>
+                                <th class="text-end pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for conv in convocatorias %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold text-dark">{{ conv.titulo }}</div>
+                                        <small class="text-muted"><i class="bi bi-bookmark-fill me-1"></i>{{ conv.periodo }}</small>
+                                    </td>
+                                    <td>{{ conv.fecha_inicio|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-warning-subtle text-dark border border-warning">
+                                            <i class="bi bi-calendar-check me-1"></i>{{ conv.fecha_limite_protocolo|date:"d/m/Y" }}
+                                        </span>
+                                    </td>
+                                    <td>{{ conv.fecha_cierre|date:"d/m/Y" }}</td>
+                                    <td class="text-end pe-4">
+                                        {% if conv.estado == 'ABIERTA' %}
+                                            <a href="{% url 'cambiar_estado_convocatoria' conv.id_convocatoria 'CERRADA' %}" 
+                                            class="btn btn-sm btn-outline-danger" 
+                                            title="Cerrar convocatoria"
+                                            onclick="return confirm('¿Deseas cerrar esta convocatoria para nuevas entregas?');">
+                                                <i class="bi bi-lock-fill me-1"></i> Cerrar
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'cambiar_estado_convocatoria' conv.id_convocatoria 'ABIERTA' %}" 
+                                            class="btn btn-sm btn-outline-success" 
+                                            title="Abrir convocatoria"
+                                            onclick="return confirm('¿Deseas abrir esta convocatoria a los alumnos?');">
+                                                <i class="bi bi-unlock-fill me-1"></i> Abrir
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                Cambiar Estado
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="{% url 'cambiar_estado_convocatoria' conv.id_convocatoria 'ABIERTA' %}">Marcar como Abierta</a></li>
+                                                <li><a class="dropdown-item" href="{% url 'cambiar_estado_convocatoria' conv.id_convocatoria 'CERRADA' %}">Marcar como Cerrada</a></li>
+                                                <li><a class="dropdown-item" href="{% url 'cambiar_estado_convocatoria' conv.id_convocatoria 'PROXIMA' %}">Marcar como Próxima</a></li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-calendar-x fs-1 text-secondary d-block mb-2"></i>
+                    Aún no se han configurado convocatorias ni fechas límite para este ciclo escolar.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

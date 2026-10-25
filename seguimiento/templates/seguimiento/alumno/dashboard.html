@@ -1,0 +1,296 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Mi Proyecto — TesisManager FCC BUAP{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Notificaciones del Sistema -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small mb-4" role="alert">
+          <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado del Alumno -->
+    <!-- Encabezado del Alumno -->
+    <div class="mb-4">
+        <span class="badge bg-primary px-3 py-1 rounded-pill mb-2">
+            Matrícula: {{ perfil.datos_alumno.matricula|default:"Sin Matrícula" }} &bull; Posgrado FCC BUAP
+        </span>
+        <h3 class="fw-bold text-body mb-0">
+            Bienvenido, {{ perfil.primer_nombre }} {{ perfil.apellido_paterno }}
+        </h3>
+    </div>
+
+    <!-- Etapas del Proceso de Titulación -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-body-tertiary">
+      <h6 class="fw-bold text-body mb-3">
+        <i class="bi bi-diagram-3-fill text-primary me-2"></i>Etapa del Proceso de Titulación
+      </h6>
+
+      <div class="row g-2 text-center">
+        <!-- 1. Protocolo -->
+        <div class="col-md-3">
+          <div class="p-3 rounded-4 border {% if proyecto %}bg-success text-white border-success{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+            <i class="bi bi-file-earmark-check-fill fs-4 d-block mb-1"></i>
+            <small class="fw-bold d-block">1. Protocolo</small>
+            <span class="badge {% if proyecto %}bg-white text-success{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+              {% if proyecto %}Registrado{% else %}Pendiente{% endif %}
+            </span>
+          </div>
+        </div>
+
+        <!-- 2. Director Asignado -->
+        <div class="col-md-3">
+          <div class="p-3 rounded-4 border {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' or proyecto.estado_proyecto == 'CONCLUIDO' %}bg-success text-white border-success{% elif proyecto.asesor %}bg-info bg-opacity-25 border-info text-body{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+            <i class="bi bi-person-check-fill fs-4 d-block mb-1"></i>
+            <small class="fw-bold d-block">2. Director Asignado</small>
+            <span class="badge {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}bg-white text-success{% elif proyecto.asesor %}bg-info text-dark{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+              {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}Ratificado{% elif proyecto.asesor %}Por Aprobar{% else %}Sin Asignar{% endif %}
+            </span>
+          </div>
+        </div>
+
+        <!-- 3. Revisiones PDF -->
+        <div class="col-md-3">
+          <div class="p-3 rounded-4 border {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}bg-primary text-white border-primary{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+            <i class="bi bi-file-earmark-arrow-up-fill fs-4 d-block mb-1"></i>
+            <small class="fw-bold d-block">3. Revisiones PDF</small>
+            <span class="badge {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}bg-white text-primary{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+              {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}Habilitado{% else %}Bloqueado{% endif %}
+            </span>
+          </div>
+        </div>
+
+        <!-- 4. Conclusión -->
+        <div class="col-md-3">
+          <div class="p-3 rounded-4 border {% if proyecto.estado_proyecto == 'CONCLUIDO' %}bg-success text-white border-success{% else %}bg-secondary bg-opacity-10 border-secondary border-opacity-25 text-body{% endif %}">
+            <i class="bi bi-award-fill fs-4 d-block mb-1"></i>
+            <small class="fw-bold d-block">4. Conclusión</small>
+            <span class="badge {% if proyecto.estado_proyecto == 'CONCLUIDO' %}bg-white text-success{% else %}bg-secondary text-white{% endif %} rounded-pill mt-1" style="font-size: 0.72rem;">
+              {% if proyecto.estado_proyecto == 'CONCLUIDO' %}Titulado{% else %}En Curso{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BANNER DE CORRECCIONES / OBSERVACIONES -->
+    {% if proyecto.estado_proyecto == 'RECHAZADO' or proyecto.estado_proyecto == 'OBSERVACIONES' %}
+      <div class="alert alert-warning border-0 rounded-4 shadow-sm p-4 mb-4">
+        <div class="d-flex align-items-start gap-3">
+          <i class="bi bi-exclamation-triangle-fill fs-3 text-warning"></i>
+          <div class="flex-grow-1">
+            <h5 class="fw-bold mb-1 text-dark">La Coordinación ha solicitado mejoras en tu protocolo</h5>
+            <p class="mb-2 text-dark small">
+              <strong>Observaciones recibidas:</strong> 
+              {{ proyecto.observaciones_coordinador|default:"Favor de actualizar los objetivos y replantear el documento antes de reenviar." }}
+            </p>
+            {% if puede_editar_protocolo %}
+              <button class="btn btn-warning text-dark fw-semibold rounded-pill px-4 btn-sm" data-bs-toggle="modal" data-bs-target="#modalSubirProtocolo">
+                <i class="bi bi-pencil-square me-1"></i> Modificar y Reenviar Propuesta
+              </button>
+            {% else %}
+              <span class="text-danger small"><i class="bi bi-clock-history me-1"></i> {{ mensaje_convocatoria }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- LAYOUT DE 2 CARDS PRINCIPALES -->
+    <div class="row g-4">
+      
+      <!-- CARD 1: EXPEDIENTE DE PROTOCOLO -->
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-body-tertiary">
+          <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+            <h5 class="fw-bold mb-0 text-body">
+              <i class="bi bi-file-earmark-text text-primary me-2"></i>Expediente de Protocolo
+            </h5>
+            
+            {% if puede_editar_protocolo %}
+              <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSubirProtocolo">
+                <i class="bi bi-pencil-square me-1"></i> Editar Propuesta
+              </button>
+            {% elif proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}
+              <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-1">
+                <i class="bi bi-patch-check-fill me-1"></i> Aprobado Oficialmente
+              </span>
+            {% endif %}
+          </div>
+
+          {% if proyecto %}
+            {% if proyecto.estado_proyecto == 'PENDIENTE' or proyecto.estado_proyecto == 'PROPUESTA' %}
+              <div class="p-3 mb-3 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-25 d-flex align-items-center gap-2">
+                <i class="bi bi-hourglass-split text-info fs-5"></i>
+                <small class="text-body">Tu propuesta está en revisión por la Coordinación. Puedes editar los campos o el archivo antes de que sea dictaminada.</small>
+              </div>
+            {% endif %}
+
+            <div class="mb-3">
+              <small class="text-secondary d-block">Título Registrado</small>
+              <h5 class="fw-bold text-body mb-0">{{ proyecto.titulo_tesis }}</h5>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <small class="text-secondary d-block">Línea de Investigación</small>
+                <span class="fw-semibold text-body">{{ proyecto.linea_investigacion|default:"No especificada" }}</span>
+              </div>
+              <div class="col-md-6">
+                <small class="text-secondary d-block">Director de Tesis</small>
+                {% if proyecto.asesor %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1 rounded-pill">
+                    {{ proyecto.asesor.datos_asesor.grado_academico|default:"Prof." }} {{ proyecto.asesor.primer_nombre }} {{ proyecto.asesor.apellido_paterno }}
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary rounded-pill">En espera de asignación</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if proyecto.archivo_protocolo %}
+              <div class="mt-auto pt-2">
+                <a href="{{ proyecto.archivo_protocolo.url }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                  <i class="bi bi-file-earmark-pdf-fill me-1"></i> Ver Protocolo Oficial Registrado
+                </a>
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-5 text-secondary">
+              <i class="bi bi-folder-plus fs-1 d-block mb-2 text-primary"></i>
+              <p class="mb-3">Aún no has registrado tu propuesta de protocolo de investigación.</p>
+              {% if puede_editar_protocolo %}
+                <button class="btn btn-primary rounded-pill px-4 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSubirProtocolo">
+                  <i class="bi bi-cloud-arrow-up-fill me-1"></i> Registrar Protocolo
+                </button>
+              {% else %}
+                <span class="badge bg-danger text-white">{{ mensaje_convocatoria }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- CARD 2: TAREAS Y COMPROMISOS PENDIENTES (CU03) -->
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-body-tertiary">
+          <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+            <h5 class="fw-bold mb-0 text-body">
+              <i class="bi bi-check2-circle text-primary me-2"></i>Tareas Pendientes
+            </h5>
+            <a href="{% url 'alumno_acuerdos' %}" class="small text-decoration-none fw-semibold">
+              Ver Minutas <i class="bi bi-chevron-right"></i>
+            </a>
+          </div>
+
+          {% if tareas_pendientes %}
+            <p class="text-secondary small mb-3">Compromisos asignados por tu director en las minutas:</p>
+            <div class="d-flex flex-column gap-2">
+              {% for tarea in tareas_pendientes %}
+                <div class="p-3 rounded-3 border bg-body d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="fw-semibold text-body d-block small">{{ tarea.descripcion_tarea }}</span>
+                    <small class="text-secondary">
+                      <i class="bi bi-calendar-event me-1"></i> Límite: {{ tarea.fecha_limite|date:"d/m/Y" }}
+                    </small>
+                  </div>
+                  <div>
+                    {% if tarea.fecha_limite < hoy %}
+                      <span class="badge bg-danger text-white rounded-pill">Vencida</span>
+                    {% else %}
+                      <span class="badge bg-warning text-dark rounded-pill">Por entregar</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5 text-secondary">
+              <i class="bi bi-clipboard-check fs-1 d-block mb-2 text-success opacity-75"></i>
+              <h6 class="fw-bold text-body mb-1">¡Al corriente!</h6>
+              <p class="small text-secondary mb-0">No tienes tareas ni acuerdos pendientes de entrega en este momento.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+</div>
+
+<!-- Modal para Registro / Edición de Protocolo -->
+<div class="modal fade" id="modalSubirProtocolo" tabindex="-1" aria-labelledby="modalSubirProtocoloLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 rounded-4 shadow-lg" style="background-color: var(--bs-body-bg);">
+      
+      <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+        <h5 class="modal-title fw-bold text-body" id="modalSubirProtocoloLabel">
+          <i class="bi bi-file-earmark-arrow-up-fill text-primary me-2"></i>
+          {% if proyecto %}Modificar Propuesta de Protocolo{% else %}Registro de Protocolo de Tesis{% endif %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <form action="{% url 'subir_protocolo' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body py-3">
+          
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Título de la Tesis *</label>
+            <input type="text" name="titulo_tesis" class="form-control" value="{{ proyecto.titulo_tesis|default:'' }}" placeholder="Ej. Plataforma web para el seguimiento de tesis..." required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Línea de Investigación *</label>
+            <input type="text" name="linea_investigacion" class="form-control" value="{{ proyecto.linea_investigacion|default:'' }}" placeholder="Ej. Ingeniería de Software / Redes y Ciberseguridad" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Director / Asesor Docente *</label>
+            <select name="asesor_id" class="form-select" required>
+              <option value="" disabled {% if not proyecto.asesor %}selected{% endif %}>-- Selecciona a tu director de tesis --</option>
+              {% for doc in asesores_activos %}
+                <option value="{{ doc.id_usuario }}" {% if proyecto.asesor.id_usuario == doc.id_usuario %}selected{% endif %}>
+                  {{ doc.datos_asesor.grado_academico|default:"Prof." }} {{ doc.primer_nombre }} {{ doc.apellido_paterno }} (N.º Emp: {{ doc.datos_asesor.numero_empleado|default:"S/N" }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">
+              Documento de Protocolo (.PDF) {% if not proyecto %}*{% endif %}
+            </label>
+            <input type="file" name="archivo_protocolo" class="form-control" accept=".pdf,application/pdf" {% if not proyecto %}required{% endif %}>
+            <div class="form-text small text-secondary mt-1">
+              {% if proyecto.archivo_protocolo %}
+                <i class="bi bi-info-circle me-1"></i> Ya cuentas con un archivo cargado. Selecciona uno nuevo solo si deseas sustituirlo.
+              {% else %}
+                <i class="bi bi-filetype-pdf me-1"></i> Formato exclusivo PDF (máximo 15 MB).
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer border-top border-secondary border-opacity-25 pt-3">
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+            <i class="bi bi-cloud-arrow-up-fill me-1"></i>
+            <span>{% if proyecto %}Guardar Cambios y Reenviar{% else %}Enviar a Coordinación{% endif %}</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

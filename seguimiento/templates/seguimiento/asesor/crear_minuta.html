@@ -1,0 +1,303 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Formalización de Minuta de Asesoría — FCC BUAP{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Notificaciones del Sistema -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado con Botón de Regreso -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold text-body mb-1">
+                <i class="bi bi-journal-plus text-primary me-2"></i>Gestión de Minutas y Acuerdos (CU03)
+            </h3>
+            <p class="text-secondary small mb-0">Selecciona el tipo de registro: sesión formal, tarea calendarizada o ambas.</p>
+        </div>
+        <a href="{% url 'asesor_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold btn-sm shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Volver a Mis Tesistas
+        </a>
+    </div>
+
+    <!-- Ficha de Tesis y Estado de Versión -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 border-start border-4 border-primary bg-body-tertiary">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <span class="badge bg-primary px-3 py-1 rounded-pill mb-2 d-inline-block">Asesoría Académica Oficial</span>
+                <h4 class="fw-bold text-body mb-1">{{ proyecto.titulo_tesis }}</h4>
+                <p class="text-secondary small mb-0">
+                    <strong>Estudiante:</strong> {{ proyecto.alumno.primer_nombre }} {{ proyecto.alumno.apellido_paterno }} &bull;
+                    <strong>Matrícula:</strong> {{ proyecto.alumno.datos_alumno.matricula|default:"S/M" }} &bull;
+                    <strong>Línea:</strong> {{ proyecto.linea_investigacion|default:"General" }}
+                </p>
+            </div>
+
+            <!-- Identificador de la Última Versión Entregada -->
+            <div class="p-3 rounded-4 bg-body border shadow-sm">
+                <small class="text-secondary d-block fw-semibold mb-1">
+                    <i class="bi bi-file-earmark-diff text-primary me-1"></i>Última Versión de Borrador:
+                </small>
+                {% if ultima_version %}
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary fs-6 px-3 py-1 rounded-pill fw-bold">v{{ ultima_version.numero_version }}</span>
+                        <small class="text-body">{{ ultima_version.fecha_hora_subida|date:"d/m/Y H:i" }} hrs</small>
+                    </div>
+                    <div class="mt-2 d-flex gap-2">
+                        <a href="{{ ultima_version.ruta_archivo_pdf.url }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" style="font-size: 0.75rem;">
+                            <i class="bi bi-file-earmark-pdf me-1"></i> Ver PDF
+                        </a>
+                        <a href="{% url 'asesor_revision' proyecto.id_proyecto %}" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" style="font-size: 0.75rem;">
+                            <i class="bi bi-chat-dots me-1"></i> Ir al Chat (CU02)
+                        </a>
+                    </div>
+                {% else %}
+                    <span class="badge bg-secondary rounded-pill">Sin borradores entregados aún</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- SELECTOR DE LOS 3 CASOS (INTERRUPTOR DINÁMICO) -->
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-body-tertiary">
+        <label class="small fw-bold text-secondary text-uppercase d-block mb-2">
+            <i class="bi bi-sliders me-1"></i> ¿Qué deseas registrar en esta ocasión?
+        </label>
+        <div class="btn-group w-100" role="group" aria-label="Selector de tipo de registro">
+            <input type="radio" class="btn-check" name="tipo_btn" id="btnModoCompleto" autocomplete="off" checked onchange="cambiarModo('COMPLETO')">
+            <label class="btn btn-outline-primary fw-semibold py-2" for="btnModoCompleto">
+                <i class="bi bi-journal-check me-1"></i> Minuta Completa (Reunión + Tareas + Fuentes)
+            </label>
+
+            <input type="radio" class="btn-check" name="tipo_btn" id="btnModoReunion" autocomplete="off" onchange="cambiarModo('SOLO_REUNION')">
+            <label class="btn btn-outline-primary fw-semibold py-2" for="btnModoReunion">
+                <i class="bi bi-calendar-event me-1"></i> Solo Sesión / Cita (Sin Tareas)
+            </label>
+
+            <input type="radio" class="btn-check" name="tipo_btn" id="btnModoTarea" autocomplete="off" onchange="cambiarModo('SOLO_TAREA')">
+            <label class="btn btn-outline-primary fw-semibold py-2" for="btnModoTarea">
+                <i class="bi bi-check2-square me-1"></i> Solo Asignar Tarea (Sin Reunión)
+            </label>
+        </div>
+    </div>
+
+    <!-- Formulario Principal -->
+    <form method="post" enctype="multipart/form-data" class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary">
+        {% csrf_token %}
+        <input type="hidden" name="tipo_registro" id="hiddenTipoRegistro" value="COMPLETO">
+
+        <!-- ==================== SECCIÓN 1: DATOS DE LA REUNIÓN / SESIÓN ==================== -->
+        <div id="seccionReunion">
+            <h5 class="fw-bold text-body mb-3">
+                <i class="bi bi-calendar-event text-primary me-2"></i>1. Datos de la Reunión y Ubicación
+            </h5>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-secondary">Fecha de la Sesión *</label>
+                    <input type="date" id="inputFechaReunion" name="fecha_reunion" class="form-control" value="{{ hoy|date:'Y-m-d' }}" required>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-secondary">Hora de la Cita</label>
+                    <input type="time" name="hora_reunion" class="form-control">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-secondary">Modalidad de Asesoría *</label>
+                    <select name="modalidad" id="selectModalidad" class="form-select" onchange="cambiarLugarPlaceholder()">
+                        <option value="PRESENCIAL">Presencial (Cubículo / Facultad)</option>
+                        <option value="VIRTUAL">Virtual (Teams / Google Meet)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-secondary" id="labelLugar">
+                        Cubículo o Aula de Encuentro
+                    </label>
+                    <input type="text" 
+                           id="inputLugar" 
+                           name="lugar_reunion" 
+                           class="form-control" 
+                           placeholder="Ej. Cubículo 105 FCC" 
+                           value="{{ cubiculo_defecto|default:'' }}">
+                </div>
+
+                <!-- Selección precisa de qué versión de tesis se analizó -->
+                <div class="col-md-12">
+                    <label class="form-label small fw-semibold text-secondary">
+                        <i class="bi bi-layers-fill me-1 text-primary"></i>¿Qué versión de borrador se analizó en esta reunión?
+                    </label>
+                    <select name="version_revisada" class="form-select">
+                        <option value="">-- Sin versión asociada (Reunión introductoria o metodológica) --</option>
+                        {% for v in versiones %}
+                            <option value="{{ v.id_entregable }}" {% if forloop.first %}selected{% endif %}>
+                                Versión {{ v.numero_version }} — Entregada el {{ v.fecha_hora_subida|date:"d/m/Y H:i" }} hrs {% if forloop.first %}(Última entrega registrada){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label small fw-semibold text-secondary">Resumen de Temas Tratados y Observaciones *</label>
+                    <textarea id="inputResumen" name="resumen_temas" rows="3" class="form-control" placeholder="Describe los puntos analizados, dudas resueltas y directrices señaladas al estudiante..." required></textarea>
+                </div>
+            </div>
+
+            <hr class="border-secondary border-opacity-25 my-4">
+        </div>
+
+        <!-- ==================== SECCIÓN 2: TAREA O COMPROMISO OBLIGATORIO ==================== -->
+        <div id="seccionTarea">
+            <h5 class="fw-bold text-body mb-3">
+                <i class="bi bi-check2-circle text-primary me-2"></i>2. Compromiso o Tarea Calendarizada
+            </h5>
+            <p class="small text-secondary mb-3">El tesista verá esta tarea en su panel principal y podrás marcarla como cumplida al recibir su avance.</p>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-secondary">Descripción de la Tarea / Compromiso *</label>
+                    <input type="text" id="inputTarea" name="descripcion_tarea" class="form-control" placeholder="Ej. Redactar el marco metodológico y corregir diagramas UML" required>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-secondary">Responsable *</label>
+                    <select name="responsable" class="form-select">
+                        <option value="ALUMNO" selected>Alumno (Tesista)</option>
+                        <option value="ASESOR">Asesor (Director)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-secondary">Fecha Límite de Cumplimiento *</label>
+                    <input type="date" id="inputFechaLimite" name="fecha_limite" class="form-control" required>
+                </div>
+            </div>
+
+            <hr class="border-secondary border-opacity-25 my-4">
+        </div>
+
+        <!-- ==================== SECCIÓN 3: FUENTES Y PDFs DE APOYO ==================== -->
+        <div id="seccionMateriales">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold text-body mb-0">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>3. PDFs de Ejemplo o Bibliografía Asignada (Opcional)
+                    </h5>
+                    <small class="text-secondary">Adjunta lecturas, artículos o plantillas para orientar la tarea del alumno.</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="agregarCampoMaterial()">
+                    <i class="bi bi-plus-lg me-1"></i> Agregar otro PDF
+                </button>
+            </div>
+
+            <div id="contenedorMateriales" class="d-flex flex-column gap-2 mb-4">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-6">
+                        <input type="text" name="titulos_apoyo" class="form-control" placeholder="Título o tema del documento (Ej. Artículo de referencia IEEE)">
+                    </div>
+                    <div class="col-md-6">
+                        <input type="file" name="archivos_apoyo" class="form-control" accept=".pdf,application/pdf">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
+            <a href="{% url 'asesor_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i> Guardar y Notificar
+            </button>
+        </div>
+    </form>
+
+</div>
+
+<script>
+    // Control dinámico de los 3 casos
+    function cambiarModo(modo) {
+        document.getElementById('hiddenTipoRegistro').value = modo;
+
+        const secReunion = document.getElementById('seccionReunion');
+        const secTarea = document.getElementById('seccionTarea');
+        const secMateriales = document.getElementById('seccionMateriales');
+
+        const inFechaReunion = document.getElementById('inputFechaReunion');
+        const inResumen = document.getElementById('inputResumen');
+        const inTarea = document.getElementById('inputTarea');
+        const inFechaLimite = document.getElementById('inputFechaLimite');
+
+        if (modo === 'COMPLETO') {
+            secReunion.style.display = 'block';
+            secTarea.style.display = 'block';
+            secMateriales.style.display = 'block';
+
+            inFechaReunion.required = true;
+            inResumen.required = true;
+            inTarea.required = true;
+            inFechaLimite.required = true;
+        } else if (modo === 'SOLO_REUNION') {
+            secReunion.style.display = 'block';
+            secTarea.style.display = 'none';
+            secMateriales.style.display = 'block';
+
+            inFechaReunion.required = true;
+            inResumen.required = true;
+            inTarea.required = false;
+            inFechaLimite.required = false;
+        } else if (modo === 'SOLO_TAREA') {
+            secReunion.style.display = 'none';
+            secTarea.style.display = 'block';
+            secMateriales.style.display = 'none';
+
+            inFechaReunion.required = false;
+            inResumen.required = false;
+            inTarea.required = true;
+            inFechaLimite.required = true;
+        }
+    }
+
+    function cambiarLugarPlaceholder() {
+        const mod = document.getElementById('selectModalidad').value;
+        const input = document.getElementById('inputLugar');
+        const label = document.getElementById('labelLugar');
+
+        if (mod === 'VIRTUAL') {
+            label.innerText = "Enlace de Reunión (Teams / Google Meet)";
+            input.placeholder = "Ej. https://teams.microsoft.com/l/meetup-join/...";
+        } else {
+            label.innerText = "Cubículo o Aula de Encuentro";
+            input.placeholder = "Ej. Cubículo 105 FCC / Sala de Juntas";
+        }
+    }
+
+    function agregarCampoMaterial() {
+        const contenedor = document.getElementById('contenedorMateriales');
+        const fila = document.createElement('div');
+        fila.className = 'row g-2 align-items-center mt-1';
+        fila.innerHTML = `
+            <div class="col-md-6">
+                <input type="text" name="titulos_apoyo" class="form-control" placeholder="Título del PDF de apoyo...">
+            </div>
+            <div class="col-md-5">
+                <input type="file" name="archivos_apoyo" class="form-control" accept=".pdf,application/pdf">
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" onclick="this.closest('.row').remove()" title="Eliminar">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </div>
+        `;
+        contenedor.appendChild(fila);
+    }
+</script>
+{% endblock %}

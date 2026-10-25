@@ -1,0 +1,377 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Inicio — TesisManager FCC BUAP{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero-badge {
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+  }
+  .card-feature {
+    border-radius: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .card-feature:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+  }
+  .role-card {
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- ============================================================== -->
+    <!-- 1. BANNER DINÁMICO DE CONVOCATORIA OFICIAL                    -->
+    <!-- ============================================================== -->
+    {% if convocatoria and mostrar_banner %}
+        <div class="card border-primary border-2 shadow-sm rounded-4 mb-5 bg-body-tertiary overflow-hidden">
+            <div class="card-body p-4">
+                <div class="row align-items-center g-3">
+                    <div class="col-lg-8">
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                            <span class="badge bg-primary text-white px-3 py-1 rounded-pill fw-semibold">
+                                <i class="bi bi-mortarboard-fill me-1"></i> Periodo: {{ convocatoria.periodo }}
+                            </span>
+                            <span class="badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill fw-semibold">
+                                <i class="bi bi-unlock-fill me-1"></i> Convocatoria Vigente
+                            </span>
+                        </div>
+                        <h3 class="fw-bold text-body mb-2">{{ convocatoria.titulo }}</h3>
+                        <p class="text-secondary small mb-0 lh-base">
+                            {{ convocatoria.descripcion|default:"Periodo oficial para el registro e inicio de actividades de tesis y entrega de protocolos ante la Coordinación de Posgrado." }}
+                        </p>
+                    </div>
+
+                    <div class="col-lg-4 text-lg-end border-start-lg ps-lg-4">
+                        <small class="text-secondary text-uppercase fw-semibold d-block mb-1" style="font-size: 0.72rem;">
+                            Límite para registrar protocolo:
+                        </small>
+                        <div class="fs-4 fw-bold text-danger mb-2 d-flex align-items-center justify-content-lg-end gap-1">
+                            <i class="bi bi-calendar-event"></i>
+                            <span>{{ convocatoria.fecha_limite_protocolo|date:"d/m/Y" }}</span>
+                        </div>
+
+                        {% if es_ultimo_dia %}
+                            <div class="badge bg-warning text-dark px-3 py-2 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm fw-bold border border-warning">
+                                <i class="bi bi-alarm-fill text-danger"></i>
+                                <span>¡Último día! Quedan {{ horas_restantes }} hora(s)</span>
+                            </div>
+                        {% else %}
+                            <div class="badge bg-success text-white px-3 py-2 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Quedan {{ dias_restantes }} día(s) para entregar</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- ============================================================== -->
+    <!-- 2. HERO PRINCIPAL: IDENTIDAD INSTITUCIONAL Y ACCESOS          -->
+    <!-- ============================================================== -->
+    <div class="row g-5 align-items-center mb-5 pb-3">
+        <!-- Presentación y Acciones -->
+        <div class="col-lg-6">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-3 fw-semibold hero-badge text-uppercase">
+                Facultad de Ciencias de la Computación &bull; BUAP
+            </span>
+            <h1 class="display-5 fw-bold text-body mb-3">TesisManager FCC</h1>
+            <p class="lead text-secondary mb-4" style="line-height: 1.6;">
+                Plataforma institucional para la formalización académica de posgrado: control inmutable de borradores en PDF, bitácora digital de acuerdos con trazabilidad de citas y supervisión automática para la prevención del rezago estudiantil.
+            </p>
+
+            {% if user.is_authenticated %}
+                <!-- Tarjeta de Redirección según Sesión Activa -->
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary border-start border-4 border-primary">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <div>
+                            <span class="badge bg-primary px-3 py-1 rounded-pill mb-2">Sesión Activa</span>
+                            <h4 class="fw-bold text-body mb-1">Hola, {{ user.first_name|default:user.username }}</h4>
+                            <p class="small text-secondary mb-0">
+                                Tu cuenta tiene asignado el rol de <strong>{{ user.perfil.tipo_usuario|title }}</strong>.
+                            </p>
+                        </div>
+                        <div>
+                            {% if user.perfil.tipo_usuario == 'ALUMNO' %}
+                                <a href="{% url 'alumno_dashboard' %}" class="btn btn-primary fw-semibold px-4 rounded-pill shadow-sm">
+                                    <i class="bi bi-mortarboard-fill me-1"></i> Ir a mi Panel de Tesis
+                                </a>
+                            {% elif user.perfil.tipo_usuario == 'ASESOR' %}
+                                <a href="{% url 'asesor_dashboard' %}" class="btn btn-primary fw-semibold px-4 rounded-pill shadow-sm">
+                                    <i class="bi bi-people-fill me-1"></i> Ir al Panel de Asesor
+                                </a>
+                            {% elif user.perfil.tipo_usuario == 'COORDINADOR' %}
+                                <a href="{% url 'coordinador_dashboard' %}" class="btn btn-primary fw-semibold px-4 rounded-pill shadow-sm">
+                                    <i class="bi bi-speedometer2 me-1"></i> Ir al Panel de Coordinación
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Botonera de Acceso y Registros Públicos -->
+                <div class="d-flex flex-wrap gap-2 pt-1">
+                    <a href="{% url 'login' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Iniciar Sesión</span>
+                    </a>
+                    <a href="{% url 'registro_alumno' %}" class="btn btn-outline-info px-4 py-2 rounded-pill fw-semibold d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-mortarboard"></i>
+                        <span>Registro de Alumno</span>
+                    </a>
+                    <a href="{% url 'registro_asesor' %}" class="btn btn-outline-warning px-4 py-2 rounded-pill fw-semibold d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-person-badge"></i>
+                        <span>Registro de Asesor</span>
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Síntesis de los 4 Casos de Uso (CU01 - CU04) SIN CUADROS DE FONDO -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary">
+                <h5 class="fw-bold text-body mb-3 border-bottom pb-2">
+                    <i class="bi bi-shield-check text-primary me-2"></i>Ejes Operativos del Sistema
+                </h5>
+
+                <!-- CU02 -->
+                <div class="d-flex gap-3 mb-3 align-items-start">
+                    <div class="text-danger flex-shrink-0 pt-1">
+                        <i class="bi bi-file-earmark-pdf-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-body mb-1">Versiones Inmutables en PDF (CU02)</h6>
+                        <small class="text-secondary">Historial secuencial de borradores (v1, v2...) que no sobreescribe ni elimina archivos previos, resguardando fórmulas y diagramas.</small>
+                    </div>
+                </div>
+
+                <!-- CU03 -->
+                <div class="d-flex gap-3 mb-3 align-items-start">
+                    <div class="text-success flex-shrink-0 pt-1">
+                        <i class="bi bi-journal-check fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-body mb-1">Minutas Formales y Acuerdos (CU03)</h6>
+                        <small class="text-secondary">Registro de compromisos con fecha límite al término de cada sesión, vinculación a versión de tesis y validación de cumplimiento.</small>
+                    </div>
+                </div>
+
+                <!-- CU04 -->
+                <div class="d-flex gap-3 mb-3 align-items-start">
+                    <div class="text-warning flex-shrink-0 pt-1">
+                        <i class="bi bi-alarm-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-body mb-1">Prevención de Rezago &gt;30 Días (CU04)</h6>
+                        <small class="text-secondary">Monitoreo continuo de inactividad respecto al último borrador o minuta, generando semáforos de alerta para intervención oportuna.</small>
+                    </div>
+                </div>
+
+                <!-- CU01 -->
+                <div class="d-flex gap-3 align-items-start">
+                    <div class="text-primary flex-shrink-0 pt-1">
+                        <i class="bi bi-person-lock fs-3"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-body mb-1">Control de Acceso por Roles (CU01)</h6>
+                        <small class="text-secondary">Blindaje en servidor donde cada usuario visualiza exclusivamente su propio expediente, evitando la escalada de privilegios.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 3. FUNCIONALIDADES DEL SISTEMA (ICONOS LIMPIOS)               -->
+    <!-- ============================================================== -->
+    <div class="mb-5">
+        <div class="text-center mb-4">
+            <span class="badge bg-primary rounded-pill px-3 py-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Actualización Tecnológica</span>
+            <h3 class="fw-bold text-body mt-2 mb-1">Funcionalidades del Sistema</h3>
+            <p class="text-secondary small mb-0">Herramientas implementadas para garantizar la formalidad y trazabilidad de las asesorías de posgrado.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- 1. Hilo de Discusión / Chat por Versión -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature h-100 p-4 bg-body-tertiary shadow-sm">
+                    <div class="text-info mb-3">
+                        <i class="bi bi-chat-dots-fill fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold text-body mb-2">Chat y PDF Anotado</h6>
+                    <p class="text-secondary small mb-0">
+                        Hilo de discusión asíncrono (AJAX) por cada versión entregada. El asesor puede devolver un PDF con anotaciones y notas al margen sin cerrar la ventana.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. Citas Virtuales y Presenciales -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature h-100 p-4 bg-body-tertiary shadow-sm">
+                    <div class="text-primary mb-3">
+                        <i class="bi bi-camera-video-fill fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold text-body mb-2">Sesiones Híbridas</h6>
+                    <p class="text-secondary small mb-0">
+                        Diferenciación automática entre citas en cubículo presencial y sesiones virtuales, generando botones directos a enlaces de Microsoft Teams o Google Meet.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3. Fuentes y Bibliografía Asignada -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature h-100 p-4 bg-body-tertiary shadow-sm">
+                    <div class="text-danger mb-3">
+                        <i class="bi bi-file-earmark-arrow-down-fill fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold text-body mb-2">Materiales de Consulta</h6>
+                    <p class="text-secondary small mb-0">
+                        El director puede adjuntar artículos científicos, plantillas o bibliografía de referencia en PDF directamente vinculados a la minuta de trabajo.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4. Doble Firma Digital de Asistencia -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card card-feature h-100 p-4 bg-body-tertiary shadow-sm">
+                    <div class="text-success mb-3">
+                        <i class="bi bi-pen-fill fs-2"></i>
+                    </div>
+                    <h6 class="fw-bold text-body mb-2">Doble Firma de Visita</h6>
+                    <p class="text-secondary small mb-0">
+                        El asesor sella la sesión al formalizarla y el estudiante confirma su asistencia con el botón institucional <em>"Firmar Visita"</em>, dejando constancia auditable.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- 4. MATRIZ DE RESPONSABILIDADES SEGÚN EL ROL                   -->
+    <!-- ============================================================== -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 border-bottom pb-3">
+            <div>
+                <h4 class="fw-bold text-body mb-1">
+                    <i class="bi bi-people-fill text-primary me-2"></i>Responsabilidades por Rol Institucional
+                </h4>
+                <p class="text-secondary small mb-0">Flujos de trabajo asignados a cada participante del posgrado.</p>
+            </div>
+            <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill px-3 py-2 fw-semibold">
+                Esquema RBAC (Role-Based Access Control)
+            </span>
+        </div>
+
+        <div class="row g-4">
+            <!-- ROL: ALUMNO -->
+            <div class="col-lg-4">
+                <div class="card role-card h-100 p-4 bg-body shadow-sm border-start border-4 border-info">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="text-info">
+                            <i class="bi bi-mortarboard-fill fs-2"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold text-body mb-0">Rol Alumno</h5>
+                            <small class="text-secondary">Tesista de Posgrado</small>
+                        </div>
+                    </div>
+                    <ul class="list-unstyled small text-secondary mb-0 d-flex flex-column gap-2">
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Registro de Protocolo:</strong> Postula y ajusta su propuesta oficial durante periodos de convocatoria vigentes.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Entrega de Borradores (PDF):</strong> Sube versiones inmutables (v1, v2...) y consulta los archivos con anotaciones del asesor.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Checklist Priorizado:</strong> Visualiza compromisos ordenados por urgencia (vencidas &gt; vigentes &gt; cumplidas).
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Firma y Enlaces:</strong> Confirma de conformidad la asistencia a asesorías y accede a Teams/Meet con un clic.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ROL: ASESOR -->
+            <div class="col-lg-4">
+                <div class="card role-card h-100 p-4 bg-body shadow-sm border-start border-4 border-primary">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="text-primary">
+                            <i class="bi bi-person-workspace fs-2"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold text-body mb-0">Rol Asesor</h5>
+                            <small class="text-secondary">Director de Tesis</small>
+                        </div>
+                    </div>
+                    <ul class="list-unstyled small text-secondary mb-0 d-flex flex-column gap-2">
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Bandeja por Tesista:</strong> Monitorea alumnos asignados mediante modales independientes y semáforo de actividad.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Evaluación de Borradores:</strong> Descarga avances, dialoga en el chat y devuelve PDFs con marcas al estudiante.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Formalización Flexible (CU03):</strong> Registra minutas completas, solo citas o tareas directas según se requiera.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Dictamen de Tareas:</strong> Valida compromisos como cumplidos o pendientes con un solo clic, reprogramando citas ante imprevistos.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ROL: COORDINACIÓN -->
+            <div class="col-lg-4">
+                <div class="card role-card h-100 p-4 bg-body shadow-sm border-start border-4 border-warning">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="text-warning">
+                            <i class="bi bi-shield-check fs-2"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold text-body mb-0">Coordinación</h5>
+                            <small class="text-secondary">Supervisión Académica</small>
+                        </div>
+                    </div>
+                    <ul class="list-unstyled small text-secondary mb-0 d-flex flex-column gap-2">
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Validación de Protocolos:</strong> Revisa propuestas iniciales, aprueba temas y asigna formalmente a los directores.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Alertas de Rezago (CU04):</strong> Monitorea en tiempo real a estudiantes que superen los 30 días de inactividad.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Auditoría Transparente:</strong> Consulta el expediente integral de cada alumno e inspecciona hilos de retroalimentación en modo lectura.
+                        </li>
+                        <li>
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Gestión de Periodos:</strong> Publica convocatorias con calendarios oficiales para la entrega de documentación.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

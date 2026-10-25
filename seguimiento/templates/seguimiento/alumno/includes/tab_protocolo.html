@@ -1,0 +1,115 @@
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-body-tertiary">
+  
+  <!-- Banner de Visto Bueno o Correcciones Solicitadas -->
+  {% if proyecto.estado_proyecto == 'RECHAZADO' or proyecto.estado_proyecto == 'OBSERVACIONES' %}
+    <div class="alert alert-warning border-0 rounded-4 shadow-sm p-3 mb-4">
+      <div class="d-flex align-items-start gap-3">
+        <i class="bi bi-exclamation-circle-fill fs-3 text-warning"></i>
+        <div class="flex-grow-1">
+          <h6 class="fw-bold mb-1 text-dark">La Coordinación ha solicitado mejoras en tu propuesta</h6>
+          <p class="mb-2 text-dark small">
+            <strong>Observaciones de Coordinación:</strong> 
+            {{ proyecto.observaciones_coordinador|default:"Favor de actualizar el documento y replantear los objetivos antes de reenviar." }}
+          </p>
+          {% if puede_editar_protocolo %}
+            <button class="btn btn-warning text-dark fw-semibold rounded-pill px-3 btn-sm" data-bs-toggle="modal" data-bs-target="#modalSubirProtocolo">
+              <i class="bi bi-pencil-square me-1"></i> Modificar y Reenviar Protocolo
+            </button>
+          {% else %}
+            <span class="badge bg-danger text-white">{{ mensaje_convocatoria }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% elif proyecto.estado_proyecto == 'PENDIENTE' or proyecto.estado_proyecto == 'PROPUESTA' %}
+    <div class="alert alert-info border-0 rounded-4 shadow-sm p-3 mb-4">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-hourglass-split fs-4 text-info"></i>
+          <div>
+            <span class="fw-bold text-dark d-block">Propuesta en revisión por la Coordinación</span>
+            <small class="text-dark">Puedes corregir o actualizar tu documento antes de que sea dictaminado.</small>
+          </div>
+        </div>
+        {% if puede_editar_protocolo %}
+          <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSubirProtocolo">
+            <i class="bi bi-pencil me-1"></i> Editar Propuesta
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Contenido de la Ficha Técnica -->
+  <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3 flex-wrap gap-2">
+    <div>
+      <span class="badge bg-primary px-3 py-1 rounded-pill mb-2">Expediente Oficial</span>
+      <h4 class="fw-bold text-body mb-0">{{ proyecto.titulo_tesis|default:"Sin propuesta registrada" }}</h4>
+    </div>
+    {% if proyecto.estado_proyecto == 'APROBADO' or proyecto.estado_proyecto == 'EN_DESARROLLO' %}
+      <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-2">
+        <i class="bi bi-check-circle-fill me-1"></i> Protocolo Aprobado
+      </span>
+    {% endif %}
+  </div>
+
+  {% if proyecto %}
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <small class="text-secondary d-block">Línea de Investigación</small>
+        <span class="fw-semibold text-body">{{ proyecto.linea_investigacion|default:"No especificada" }}</span>
+      </div>
+      <div class="col-md-6">
+        <small class="text-secondary d-block">Director de Tesis</small>
+        {% if proyecto.asesor %}
+          <span class="fw-semibold text-body">
+            {{ proyecto.asesor.datos_asesor.grado_academico|default:"Prof." }} {{ proyecto.asesor.primer_nombre }} {{ proyecto.asesor.apellido_paterno }}
+          </span>
+          {% if proyecto.asesor.user.email %}
+            <small class="text-secondary d-block">{{ proyecto.asesor.user.email }}</small>
+          {% endif %}
+        {% else %}
+          <span class="text-warning small fst-italic">En espera de ratificación</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Archivo Adjunto -->
+    <div class="p-3 rounded-4 bg-secondary bg-opacity-10 border border-secondary border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-file-earmark-pdf-fill text-danger fs-2"></i>
+        <div>
+          <span class="fw-bold text-body d-block">Documento de Protocolo Institucional</span>
+          <small class="text-secondary">Expediente resguardado en formato digital inmutable.</small>
+        </div>
+      </div>
+      {% if proyecto.archivo_protocolo %}
+        <a href="{{ proyecto.archivo_protocolo.url }}" target="_blank" class="btn btn-outline-danger rounded-pill px-4 btn-sm fw-semibold">
+          <i class="bi bi-box-arrow-up-right me-1"></i> Abrir Documento PDF
+        </a>
+      {% else %}
+        <span class="badge bg-secondary">Sin archivo digital</span>
+      {% endif %}
+    </div>
+
+  {% else %}
+    <!-- Estado Vacío -->
+    <div class="text-center py-5 text-secondary">
+      <div class="p-3 rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex mb-3">
+        <i class="bi bi-folder-plus fs-1"></i>
+      </div>
+      <h5 class="fw-bold text-body mb-1">Aún no has registrado tu propuesta de protocolo</h5>
+      <p class="small text-secondary mb-3">Inicia tu trámite subiendo el documento en formato PDF durante el periodo oficial.</p>
+      {% if puede_editar_protocolo %}
+        <button class="btn btn-primary rounded-pill px-4 fw-semibold" data-bs-toggle="modal" data-bs-target="#modalSubirProtocolo">
+          <i class="bi bi-cloud-arrow-up-fill me-1"></i> Registrar y Subir Protocolo
+        </button>
+      {% else %}
+        <div class="alert alert-warning d-inline-block py-2 px-3 small rounded-pill border-0 mb-0">
+          <i class="bi bi-clock-history me-1"></i> {{ mensaje_convocatoria }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>

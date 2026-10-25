@@ -1,0 +1,216 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Monitoreo de Rezago y Alertas — Coordinación FCC BUAP{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado Principal -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 border-bottom pb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill fw-semibold">
+                    <i class="bi bi-shield-exclamation me-1"></i> Módulo de Prevención de Abandono
+                </span>
+                <span class="badge bg-body-secondary text-body-secondary border px-2 py-1 rounded-pill">
+                    Umbral: 30 Días
+                </span>
+            </div>
+            <h3 class="fw-bold mb-1">
+                <i class="bi bi-bell-fill text-danger me-2"></i>Monitoreo de Inactividad Académica
+            </h3>
+            <p class="text-body-secondary small mb-0">
+                Supervisión automática del tiempo transcurrido desde el último borrador en PDF o minuta registrada.
+            </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'coordinador_dashboard' %}" class="btn btn-outline-secondary btn-sm px-3">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Directorio
+            </a>
+            <a href="{% url 'coordinador_alertas' %}" class="btn btn-primary btn-sm px-3 fw-semibold">
+                <i class="bi bi-arrow-clockwise me-1"></i> Actualizar Semáforo
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Métricas de Control (KPIs) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-danger">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-body-secondary text-uppercase fw-semibold">Alumnos en Rezago Crítico</small>
+                        <h3 class="fw-bold mb-0 mt-1 {% if lista_alertas %}text-danger{% endif %}">
+                            {{ lista_alertas|length|default:0 }}
+                        </h3>
+                        <small class="text-muted">> 30 días sin actividad</small>
+                    </div>
+                    <div class="bg-danger text-white p-3 rounded-circle fs-4">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-body-secondary text-uppercase fw-semibold">Alumnos en Advertencia</small>
+                        <h3 class="fw-bold mb-0 mt-1">{{ total_advertencia|default:0 }}</h3>
+                        <small class="text-muted">Entre 20 y 30 días sin avance</small>
+                    </div>
+                    <div class="bg-warning text-dark p-3 rounded-circle fs-4">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-body-secondary text-uppercase fw-semibold">Estado del Claustro</small>
+                        <h3 class="fw-bold mb-0 mt-1 text-success">
+                            {% if lista_alertas %}Atención{% else %}Regular{% endif %}
+                        </h3>
+                        <small class="text-muted">Cumplimiento del posgrado</small>
+                    </div>
+                    <div class="bg-success text-white p-3 rounded-circle fs-4">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Alumnos en Riesgo o Estado Vacío Elegante -->
+    {% if lista_alertas %}
+        <!-- Tabla cuando SÍ hay alumnos en alerta -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden border-start border-4 border-danger">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-danger">
+                    <i class="bi bi-shield-fill-x me-2"></i>Estudiantes con Inactividad Superior a 30 Días
+                </h6>
+                <span class="badge bg-danger text-white px-3 py-1 rounded-pill">
+                    {{ lista_alertas|length }} caso(s) prioritario(s)
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Estudiante</th>
+                                <th>Director de Tesis</th>
+                                <th>Título de la Tesis</th>
+                                <th>Último Avance</th>
+                                <th>Días Inactivo</th>
+                                <th class="text-end pe-4">Intervención</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in lista_alertas %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="fw-semibold d-block text-body">
+                                            {{ item.perfil.primer_nombre }} {{ item.perfil.apellido_paterno }}
+                                        </span>
+                                        <small class="text-body-secondary">{{ item.matricula }}</small>
+                                    </td>
+                                    <td>
+                                        {% if item.proyecto.asesor %}
+                                            <span class="small fw-semibold text-body">
+                                                {{ item.proyecto.asesor.datos_asesor.grado_academico }} {{ item.proyecto.asesor.primer_nombre }} {{ item.proyecto.asesor.apellido_paterno }}
+                                            </span>
+                                            <small class="text-body-secondary d-block">{{ item.proyecto.asesor.user.email }}</small>
+                                        {% else %}
+                                            <span class="badge bg-warning-subtle text-warning">Sin asesor asignado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="small d-block text-truncate" style="max-width: 280px;" title="{{ item.proyecto.titulo_tesis }}">
+                                            {{ item.proyecto.titulo_tesis }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-body-secondary d-block">{{ item.proyecto.fecha_ultimo_avance|date:"d/m/Y" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger text-white px-2 py-1 fs-6">
+                                            <i class="bi bi-clock-history me-1"></i> {{ item.dias_inactividad }} días
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'coordinador_ver_expediente' item.perfil.id_usuario %}" class="btn btn-sm btn-outline-danger me-1" title="Ver Expediente">
+                                            <i class="bi bi-folder2-open me-1"></i> Expediente
+                                        </a>
+                                        <a href="mailto:{{ item.perfil.user.email }}?cc={{ item.proyecto.asesor.user.email }}&subject=Aviso%20de%20Inactividad%20en%20Tesis%20FCC%20BUAP" class="btn btn-sm btn-danger" title="Enviar Notificación">
+                                            <i class="bi bi-envelope-fill me-1"></i> Notificar
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Estado Vacío Ilustrado y Profesional (Cuando NO hay alertas) -->
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+            <div class="my-3">
+                <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle shadow-sm" style="width: 80px; height: 80px;">
+                    <i class="bi bi-check2-circle fs-1"></i>
+                </div>
+            </div>
+            <h4 class="fw-bold mb-2">Semáforo de Rezago en Orden</h4>
+            <p class="text-body-secondary small col-md-7 mx-auto mb-4">
+                Actualmente ningún estudiante del posgrado supera el umbral crítico de 30 días sin actividad académica. Todos los proyectos activos cuentan con entregas de avances o minutas de asesoría registradas en tiempo y forma.
+            </p>
+
+            <div class="row g-3 justify-content-center max-w-75 mx-auto">
+                <div class="col-md-4">
+                    <div class="p-3 bg-body-tertiary rounded-3 border text-start">
+                        <div class="d-flex align-items-center gap-2 mb-1 text-success">
+                            <i class="bi bi-circle-fill fs-6"></i>
+                            <strong class="small text-body">0 a 19 días</strong>
+                        </div>
+                        <small class="text-body-secondary d-block">Avance regular sin intervención requerida.</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-body-tertiary rounded-3 border text-start">
+                        <div class="d-flex align-items-center gap-2 mb-1 text-warning">
+                            <i class="bi bi-circle-fill fs-6"></i>
+                            <strong class="small text-body">20 a 29 días</strong>
+                        </div>
+                        <small class="text-body-secondary d-block">Periodo de advertencia preventiva.</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-body-tertiary rounded-3 border text-start">
+                        <div class="d-flex align-items-center gap-2 mb-1 text-danger">
+                            <i class="bi bi-circle-fill fs-6"></i>
+                            <strong class="small text-body">30+ días</strong>
+                        </div>
+                        <small class="text-body-secondary d-block">Alerta activa con llamado formal de Coordinación.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

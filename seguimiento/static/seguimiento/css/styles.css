@@ -1,0 +1,146 @@
+/* ======================================================================
+   ESTILOS UI/UX: AUTENTICACIÓN Y FORMULARIOS DE REGISTRO
+   ====================================================================== */
+
+/* Contenedor tipo Tarjeta Glassmorphism */
+.auth-card {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.5), 
+                0 0 20px 1px rgba(13, 110, 253, 0.15);
+    border-radius: 1.25rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    width: 100%;
+}
+
+/* Modo claro: ajuste de contraste para la tarjeta */
+[data-bs-theme="light"] .auth-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0, 59, 92, 0.08);
+}
+
+/* Inputs con realce visual */
+.form-control-custom,
+.auth-card .form-control,
+.auth-card .form-select {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #f8f9fa !important;
+    padding: 0.72rem 1rem;
+    font-size: 0.92rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease-in-out;
+}
+
+[data-bs-theme="light"] .form-control-custom,
+[data-bs-theme="light"] .auth-card .form-control,
+[data-bs-theme="light"] .auth-card .form-select {
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #1e293b !important;
+}
+
+.auth-card .form-control:focus,
+.auth-card .form-select:focus {
+    background-color: rgba(255, 255, 255, 0.09) !important;
+    border-color: #00b2e3 !important;
+    box-shadow: 0 0 0 4px rgba(0, 178, 227, 0.25) !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .auth-card .form-control:focus,
+[data-bs-theme="light"] .auth-card .form-select:focus {
+    background-color: #ffffff !important;
+    border-color: #003b5c !important;
+    box-shadow: 0 0 0 4px rgba(0, 59, 92, 0.15) !important;
+    color: #0f172a !important;
+}
+
+.auth-card .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.35) !important;
+}
+
+[data-bs-theme="light"] .auth-card .form-control::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* Botón interactivo para alternar contraseña (ojo) */
+.password-toggle-btn {
+    border-top-right-radius: 0.75rem !important;
+    border-bottom-right-radius: 0.75rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    transition: all 0.2s ease;
+}
+
+[data-bs-theme="light"] .password-toggle-btn {
+    border: 1px solid #cbd5e1 !important;
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+}
+
+.password-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .password-toggle-btn:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+/* Botones principales con gradientes */
+.btn-auth-primary {
+    background: linear-gradient(135deg, #003b5c 0%, #00b2e3 100%);
+    border: none;
+    color: #ffffff !important;
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px rgba(0, 178, 227, 0.3);
+}
+
+.btn-auth-primary:hover {
+    background: linear-gradient(135deg, #004b75 0%, #009ec9 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 178, 227, 0.45);
+}
+
+.btn-auth-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: none;
+    color: #1e293b !important;
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.btn-auth-warning:hover {
+    background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+/* Títulos de sección internos */
+.auth-section-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: #00b2e3;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+[data-bs-theme="light"] .auth-section-title {
+    color: #003b5c;
+    border-bottom: 1px solid #e2e8f0;
+}

@@ -1,0 +1,107 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Alta de Nuevo Coordinador - Posgrado FCC{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="text-center mb-4">
+                    <div class="fs-1 text-primary mb-2">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">Alta de Nuevo Coordinador</h3>
+                    <p class="text-muted small">Registra a un docente o administrativo para que comparta tareas de coordinación del posgrado.</p>
+                </div>
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Datos de Acceso</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Usuario</label>
+                            {{ form.username }}
+                            {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Correo institucional</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Contraseña temporal</label>
+                            <div class="input-group">
+                                {{ form.password }}
+                                <button class="btn btn-outline-secondary btn-toggle-pass" type="button"><i class="bi bi-eye icono-ojo"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Confirmar contraseña</label>
+                            <div class="input-group">
+                                {{ form.confirmar_password }}
+                                <button class="btn btn-outline-secondary btn-toggle-pass" type="button"><i class="bi bi-eye icono-ojo"></i></button>
+                            </div>
+                            {% if form.confirmar_password.errors %}<div class="text-danger small">{{ form.confirmar_password.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Datos Personales y Oficina</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Primer Nombre</label>
+                            {{ form.primer_nombre }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Segundo Nombre (opcional)</label>
+                            {{ form.segundo_nombre }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Apellido Paterno</label>
+                            {{ form.apellido_paterno }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Apellido Materno</label>
+                            {{ form.apellido_materno }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Cubículo / Oficina</label>
+                            {{ form.cubiculo_oficina }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Teléfono / Extensión</label>
+                            {{ form.telefono_oficina }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'coordinador_dashboard' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary fw-semibold">
+                            <i class="bi bi-person-check-fill me-1"></i> Guardar Coordinador
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    const p1 = document.querySelector('input[name="password"]');
+    const p2 = document.querySelector('input[name="confirmar_password"]');
+    document.querySelectorAll('.btn-toggle-pass').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const ver = p1.type === 'password';
+            const nuevo = ver ? 'text' : 'password';
+            p1.type = nuevo;
+            p2.type = nuevo;
+            document.querySelectorAll('.icono-ojo').forEach(ic => {
+                ic.className = ver ? 'bi bi-eye-slash icono-ojo' : 'bi bi-eye icono-ojo';
+            });
+        });
+    });
+</script>
+{% endblock %}

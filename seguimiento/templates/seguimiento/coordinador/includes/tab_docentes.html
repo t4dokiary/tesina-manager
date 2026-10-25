@@ -1,0 +1,98 @@
+<!-- Solicitudes de Acceso Docente -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+  <div class="card-header py-3 d-flex justify-content-between align-items-center bg-body-tertiary">
+    <h6 class="fw-bold mb-0 text-body">
+      <i class="bi bi-clock-history text-warning me-2"></i>Solicitudes de Acceso Docente
+    </h6>
+    <span class="badge {% if asesores_pendientes %}bg-warning text-dark{% else %}bg-secondary{% endif %} rounded-pill">
+      {{ asesores_pendientes|length }} por validar
+    </span>
+  </div>
+  <div class="card-body p-0">
+    {% if asesores_pendientes %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">Docente</th>
+              <th>Correo Institucional</th>
+              <th>N.º Empleado</th>
+              <th>Grado</th>
+              <th class="text-end pe-4">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for doc in asesores_pendientes %}
+              <tr>
+                <td class="ps-4 fw-semibold text-body">
+                  {{ doc.primer_nombre }} {{ doc.segundo_nombre|default:'' }} {{ doc.apellido_paterno }} {{ doc.apellido_materno }}
+                </td>
+                <td>{{ doc.user.email }}</td>
+                <td><span class="badge bg-secondary">{{ doc.datos_asesor.numero_empleado|default:"S/N" }}</span></td>
+                <td>{{ doc.datos_asesor.grado_academico|default:"Prof." }}</td>
+                <td class="text-end pe-4">
+                  <a href="{% url 'activar_asesor' doc.id_usuario %}" class="btn btn-sm btn-success rounded-pill px-3">
+                    <i class="bi bi-check-lg me-1"></i> Aprobar
+                  </a>
+                  <a href="{% url 'rechazar_asesor' doc.id_usuario %}" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('¿Rechazar esta solicitud?');">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-4 text-secondary small">
+        <i class="bi bi-check-circle fs-3 text-success d-block mb-1"></i>
+        No hay solicitudes pendientes de docentes.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Directorio de Docentes Activos -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+  <div class="card-header py-3 d-flex justify-content-between align-items-center bg-body-tertiary">
+    <h6 class="fw-bold mb-0 text-body">
+      <i class="bi bi-people-fill text-success me-2"></i>Directorio de Docentes Activos
+    </h6>
+    <span class="badge bg-success rounded-pill">{{ asesores_activos|length }} en funciones</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Grado y Nombre</th>
+            <th>Correo</th>
+            <th>N.º Empleado</th>
+            <th class="text-end pe-4">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in asesores_activos %}
+            <tr>
+              <td class="ps-4 text-body fw-semibold">
+                {{ doc.datos_asesor.grado_academico|default:"Prof." }} {{ doc.primer_nombre }} {{ doc.apellido_paterno }}
+              </td>
+              <td>{{ doc.user.email }}</td>
+              <td><span class="badge bg-secondary">{{ doc.datos_asesor.numero_empleado|default:"S/N" }}</span></td>
+              <td class="text-end pe-4">
+                <a href="{% url 'cambiar_rol_usuario' doc.id_usuario %}" class="btn btn-sm btn-outline-primary rounded-pill px-2 me-1" title="Promover a Coordinador">
+                  <i class="bi bi-arrow-up-circle me-1"></i> Promover
+                </a>
+                <a href="{% url 'coordinador_editar_asesor' doc.id_usuario %}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="text-center py-4 text-secondary">No hay docentes registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

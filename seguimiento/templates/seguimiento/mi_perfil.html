@@ -1,0 +1,165 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Configuración de Perfil — TesisManager FCC{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="card shadow-sm rounded-4 border-0 p-4">
+                <!-- Encabezado de Perfil -->
+                <div class="d-flex align-items-center gap-3 border-bottom pb-3 mb-4">
+                    <div class="bg-primary text-white p-3 rounded-circle fs-4 d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                        <i class="bi bi-person-fill-gear"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-body">Mi Perfil y Preferencias</h4>
+                        <small class="text-body-secondary">Personaliza la apariencia del sistema y administra tus accesos.</small>
+                    </div>
+                </div>
+
+                <form id="formPerfil" method="post">
+                    {% csrf_token %}
+
+                    <!-- Bloque 1: Apariencia Visual -->
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-palette me-1"></i> Apariencia Visual de la Interfaz
+                    </h6>
+                    <div class="mb-4 bg-body-tertiary p-3 rounded-3 border">
+                        <label class="form-label small fw-semibold text-body">Esquema de Color / Tema Predilecto:</label>
+                        {{ form.tema }}
+                        <small class="text-body-secondary d-block mt-1">
+                            Puedes forzar tema claro, tema oscuro o permitir que la plataforma se adapte a tu sistema operativo.
+                        </small>
+                    </div>
+
+                    <!-- Bloque 2: Información General -->
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-person-vcard me-1"></i> Información General
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Primer Nombre</label>
+                            {{ form.primer_nombre }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Segundo Nombre</label>
+                            {{ form.segundo_nombre }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Apellido Paterno</label>
+                            {{ form.apellido_paterno }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Apellido Materno</label>
+                            {{ form.apellido_materno }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Correo Electrónico Institucional</label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Teléfono de Contacto</label>
+                            {{ form.telefono }}
+                        </div>
+                    </div>
+
+                    <!-- Bloque 3: Seguridad y Acceso -->
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-shield-lock me-1"></i> Seguridad y Acceso
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Nueva Contraseña</label>
+                            {{ form.nueva_password }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-body">Confirmar Nueva Contraseña</label>
+                            {{ form.confirmar_password }}
+                        </div>
+                    </div>
+
+                    <!-- Botón de acción con confirmación -->
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-primary fw-semibold px-4 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalConfirmarCambios">
+                            <i class="bi bi-save me-1"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Pop-Up de Advertencia Irreversible -->
+<div class="modal fade" id="modalConfirmarCambios" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 p-3 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2 text-danger">
+                    <i class="bi bi-exclamation-octagon-fill fs-3"></i>
+                    <h5 class="modal-title fw-bold">¿Confirmar Modificación?</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="mb-2 text-body">Estás a punto de actualizar tu información de identidad y credenciales de acceso.</p>
+                <div class="alert alert-warning small mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Atención:</strong> Si actualizas la contraseña, la sesión se renovará con la nueva clave. No habrá marcha atrás.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger btn-sm fw-semibold rounded-pill px-4" onclick="document.getElementById('formPerfil').submit();">
+                    <i class="bi bi-check2-circle me-1"></i> Sí, Aplicar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Localizar el <select> del tema (generado por Django como id_tema)
+        const selectTema = document.getElementById('id_tema') || document.querySelector('select[name="tema"]');
+        
+        if (selectTema) {
+            // Sincronizar el valor inicial del select con lo que esté activo
+            const temaActivo = localStorage.getItem('tesis_theme') || 'system';
+            if (temaActivo === 'light') {
+                selectTema.value = 'LIGHT';
+            } else if (temaActivo === 'dark') {
+                selectTema.value = 'DARK';
+            } else {
+                selectTema.value = 'SYSTEM';
+            }
+
+            // Cambiar el tema en tiempo real en cuanto el usuario selecciona otra opción
+            selectTema.addEventListener('change', function() {
+                const seleccion = this.value.toLowerCase();
+                setTema(seleccion);
+            });
+        }
+
+        // Al presionar "Sí, Aplicar Cambios" en el modal, guardar la preferencia en localStorage
+        const formPerfil = document.getElementById('formPerfil');
+        if (formPerfil && selectTema) {
+            formPerfil.addEventListener('submit', function() {
+                localStorage.setItem('tesis_theme', selectTema.value.toLowerCase());
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+  <div class="card-header py-3 d-flex justify-content-between align-items-center bg-body-tertiary">
+    <h6 class="fw-bold mb-0 text-body">
+      <i class="bi bi-mortarboard-fill text-primary me-2"></i>Directorio General y Monitoreo de Rezago
+    </h6>
+    <span class="badge bg-primary rounded-pill">{{ lista_alumnos|length }} alumno(s)</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Estudiante</th>
+            <th>Matrícula</th>
+            <th>Correo</th>
+            <th>Estado Tesis</th>
+            <th>Inactividad</th>
+            <th class="text-end pe-4">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in lista_alumnos %}
+            <tr>
+              <td class="ps-4 fw-semibold text-body">
+                {{ item.perfil.primer_nombre }} {{ item.perfil.segundo_nombre|default:'' }} {{ item.perfil.apellido_paterno }}
+              </td>
+              <td><span class="badge bg-dark-subtle text-body border">{{ item.matricula }}</span></td>
+              <td class="small">{{ item.perfil.user.email }}</td>
+              <td>
+                {% if item.proyecto %}
+                  {% if item.proyecto.estado_proyecto == 'APROBADO' or item.proyecto.estado_proyecto == 'EN_DESARROLLO' %}
+                    <span class="badge bg-success-subtle text-success border border-success">En Desarrollo</span>
+                  {% elif item.proyecto.estado_proyecto == 'CONCLUIDO' %}
+                    <span class="badge bg-info-subtle text-info border border-info">Concluido</span>
+                  {% else %}
+                    <span class="badge bg-warning-subtle text-warning border border-warning">{{ item.proyecto.get_estado_proyecto_display }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border">Sin Protocolo</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.alerta %}
+                  <span class="badge bg-danger text-white">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ item.dias_inactividad }} día(s)
+                  </span>
+                {% else %}
+                  <span class="badge bg-success-subtle text-success border border-success">
+                    {{ item.dias_inactividad }} día(s)
+                  </span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-4">
+                {% if item.proyecto %}
+                  <a href="{% url 'coordinador_ver_expediente' item.perfil.id_usuario %}" class="btn btn-sm btn-outline-info rounded-pill px-3 me-1">
+                    <i class="bi bi-folder-fill me-1"></i> Expediente
+                  </a>
+                {% else %}
+                  <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" disabled title="No tiene protocolo registrado">
+                    <i class="bi bi-folder me-1"></i> Expediente
+                  </button>
+                {% endif %}
+                <a href="{% url 'coordinador_editar_alumno' item.perfil.id_usuario %}" class="btn btn-sm btn-outline-primary rounded-pill px-2">
+                  <i class="bi bi-pencil-square"></i>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="text-center py-4 text-secondary">No hay alumnos dados de alta.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

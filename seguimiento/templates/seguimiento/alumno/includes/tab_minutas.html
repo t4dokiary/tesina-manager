@@ -1,0 +1,78 @@
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+  <div class="card-header py-3 d-flex justify-content-between align-items-center bg-body-tertiary">
+    <h6 class="fw-bold mb-0 text-body">
+      <i class="bi bi-journal-check text-primary me-2"></i>Minutas y Compromisos de Asesoría (CU03)
+    </h6>
+    <span class="badge bg-info text-dark rounded-pill">{{ minutas|length }} sesión(es)</span>
+  </div>
+  <div class="card-body p-0">
+    {% if minutas %}
+      <div class="accordion accordion-flush" id="accordionMinutas">
+        {% for m in minutas %}
+          <div class="accordion-item bg-transparent border-bottom">
+            <h2 class="accordion-header" id="heading{{ m.id_minuta }}">
+              <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} bg-body-tertiary fw-semibold text-body" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ m.id_minuta }}">
+                <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                  <div>
+                    <i class="bi bi-calendar3 text-primary me-2"></i>
+                    <span>Sesión del {{ m.fecha_reunion|date:"d/m/Y" }}</span>
+                    <span class="badge bg-secondary ms-2">{{ m.get_modalidad_display|default:m.modalidad }}</span>
+                  </div>
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                    {{ m.acuerdos.count }} compromiso(s)
+                  </span>
+                </div>
+              </button>
+            </h2>
+            <div id="collapse{{ m.id_minuta }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#accordionMinutas">
+              <div class="accordion-body">
+                <p class="small text-secondary mb-2"><strong>Temas Abordados:</strong></p>
+                <div class="p-3 rounded-3 bg-secondary bg-opacity-10 mb-3 small text-body">
+                  {{ m.resumen_temas }}
+                </div>
+
+                <p class="small text-secondary mb-2"><strong>Compromisos Acordados:</strong></p>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Tarea</th>
+                        <th>Responsable</th>
+                        <th>Fecha Límite</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for ac in m.acuerdos.all %}
+                        <tr>
+                          <td class="small">{{ ac.descripcion_tarea }}</td>
+                          <td><span class="badge bg-secondary">{{ ac.responsable }}</span></td>
+                          <td class="small">{{ ac.fecha_limite|date:"d/m/Y" }}</td>
+                          <td>
+                            {% if ac.estado == 'CUMPLIDO' or ac.estado_cumplido %}
+                              <span class="badge bg-success-subtle text-success border border-success">Cumplido</span>
+                            {% else %}
+                              <span class="badge bg-warning-subtle text-warning border border-warning">Pendiente</span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr><td colspan="4" class="text-center text-secondary small py-2">Sin acuerdos desglosados.</td></tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-secondary">
+        <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
+        <h6 class="fw-bold text-body mb-1">No hay minutas registradas todavía</h6>
+        <p class="small text-secondary mb-0">Cuando tu director de tesis celebre una reunión contigo, registrará los acuerdos en este apartado.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>

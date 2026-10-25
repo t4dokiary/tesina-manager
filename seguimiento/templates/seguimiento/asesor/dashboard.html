@@ -1,0 +1,408 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Panel del Asesor — TesisManager FCC BUAP{% endblock %}
+
+{% block extra_css %}
+<style>
+  .modal-subtab .nav-link {
+    border-radius: 50rem;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 0.4rem 1.2rem;
+  }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Notificaciones del Sistema -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado del Asesor -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold text-body mb-1">
+                <i class="bi bi-person-workspace text-primary me-2"></i>Dirección y Asesoría de Posgrado
+            </h3>
+            <p class="text-secondary small mb-0">
+                Bienvenido, <strong>{{ user.perfil.datos_asesor.grado_academico|default:"Prof." }} {{ user.perfil.primer_nombre }} {{ user.perfil.apellido_paterno }}</strong> &bull;
+                Cubículo: <strong>{{ user.perfil.datos_asesor.cubiculo|default:"No asignado" }}</strong>
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'mi_perfil' %}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm fw-semibold">
+                <i class="bi bi-gear me-1"></i> Mi Perfil
+            </a>
+        </div>
+    </div>
+
+    <!-- TARJETAS DE MÉTRICAS (KPIs) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-body-tertiary border-start border-4 border-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-secondary fw-semibold d-block">Tesistas a Cargo</small>
+                        <h4 class="fw-bold text-body mb-0">{{ proyectos|length|default:0 }}</h4>
+                    </div>
+                    <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-circle">
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-body-tertiary border-start border-4 border-warning">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-secondary fw-semibold d-block">Borradores por Calificar</small>
+                        <h4 class="fw-bold text-body mb-0">{{ entregas_pendientes|default:0 }}</h4>
+                    </div>
+                    <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-circle">
+                        <i class="bi bi-file-earmark-diff-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-body-tertiary border-start border-4 border-danger">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-secondary fw-semibold d-block">Alumnos en Rezago (>30 días)</small>
+                        <h4 class="fw-bold text-body mb-0">{{ alumnos_rezago|default:0 }}</h4>
+                    </div>
+                    <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-circle">
+                        <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIRECTORIO DE ALUMNOS (TABLA PRINCIPAL LIMPIA) -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-body-tertiary">
+        <div class="card-header py-3 bg-body d-flex justify-content-between align-items-center border-bottom">
+            <h6 class="fw-bold mb-0 text-body">
+                <i class="bi bi-mortarboard text-primary me-2"></i>Estudiantes Bajo tu Dirección
+            </h6>
+            <span class="badge bg-primary rounded-pill">{{ proyectos|length|default:0 }} tesista(s)</span>
+        </div>
+
+        <div class="card-body p-0">
+            {% if proyectos %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Tesista</th>
+                                <th>Título de Tesis</th>
+                                <th>Última Actividad</th>
+                                <th>Estado de Rezago</th>
+                                <th class="text-end pe-4">Gestión por Alumno</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in proyectos %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold text-body">{{ p.alumno.primer_nombre }} {{ p.alumno.apellido_paterno }}</div>
+                                        <small class="text-secondary">Matrícula: {{ p.alumno.datos_alumno.matricula|default:"S/M" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-body d-block small" style="max-width: 270px;">{{ p.titulo_tesis }}</span>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.7rem;">{{ p.linea_investigacion|default:"General" }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-secondary">{{ p.fecha_ultimo_avance|date:"d/m/Y"|default:"Sin registro" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if p.tiene_alerta_rezago or p.dias_inactividad >= 30 %}
+                                            <span class="badge bg-danger text-white rounded-pill px-3 py-1">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ p.dias_inactividad }} días (Rezago)
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-1">
+                                                {{ p.dias_inactividad }} día(s) al día
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="d-inline-flex gap-2">
+                                            <!-- Revisiones PDF (CU02) -->
+                                            <a href="{% url 'asesor_revision' p.id_proyecto %}" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm" title="Revisión de borradores">
+                                                <i class="bi bi-file-earmark-pdf me-1"></i> Borradores ({{ p.entregables.count }})
+                                            </a>
+
+                                            <!-- Modal individual de Acuerdos y Minutas de este alumno -->
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modalMinutasAlumno{{ p.id_proyecto }}" 
+                                                    title="Ver acuerdos de este alumno">
+                                                <i class="bi bi-journal-check me-1"></i> Acuerdos ({{ p.minutas.count }})
+                                            </button>
+
+                                            <!-- Formulario para agregar Minuta / Tarea -->
+                                            <a href="{% url 'asesor_minuta' p.id_proyecto %}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" title="Nueva sesión o tarea">
+                                                <i class="bi bi-plus-circle me-1"></i> Nueva Minuta
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-secondary">
+                    <i class="bi bi-people fs-1 opacity-50 d-block mb-1"></i>
+                    <h6 class="fw-bold text-body">No tienes alumnos de tesis asignados actualmente</h6>
+                    <p class="small text-secondary mb-0">Cuando la Coordinación apruebe y te asigne estudiantes, aparecerán aquí.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODALES DE MINUTAS Y TAREAS (ORGANIZADOS DE FORMA INDIVIDUAL POR ALUMNO) -->
+<!-- ======================================================================= -->
+{% for p in proyectos %}
+<div class="modal fade" 
+     id="modalMinutasAlumno{{ p.id_proyecto }}" 
+     data-bs-backdrop="static" 
+     data-bs-keyboard="false" 
+     tabindex="-1" 
+     aria-labelledby="modalMinutasAlumnoLabel{{ p.id_proyecto }}" 
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0 rounded-4 shadow-lg" style="background-color: var(--bs-body-bg);">
+      
+      <!-- Cabecera del Expediente del Alumno -->
+      <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+        <div>
+          <h5 class="modal-title fw-bold text-body mb-0" id="modalMinutasAlumnoLabel{{ p.id_proyecto }}">
+            <i class="bi bi-folder2-open text-primary me-2"></i>Seguimiento de Asesorías (CU03) — {{ p.alumno.primer_nombre }} {{ p.alumno.apellido_paterno }}
+          </h5>
+          <small class="text-secondary">
+            <strong>Tesis:</strong> {{ p.titulo_tesis }} &bull; Matrícula: {{ p.alumno.datos_alumno.matricula|default:"S/M" }}
+          </small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body py-3">
+        
+        <!-- Pestañas internas del Modal: Tareas vs Citas -->
+        <ul class="nav nav-pills modal-subtab gap-2 mb-3 bg-secondary bg-opacity-10 p-2 rounded-pill" role="tablist">
+          <li class="nav-item flex-fill text-center" role="presentation">
+            <button class="nav-link active w-100" id="tab-sub-tareas{{ p.id_proyecto }}" data-bs-toggle="pill" data-bs-target="#sub-tareas{{ p.id_proyecto }}" type="button" role="tab">
+              <i class="bi bi-check2-circle me-1"></i> Compromisos y Tareas Asignadas
+            </button>
+          </li>
+          <li class="nav-item flex-fill text-center" role="presentation">
+            <button class="nav-link w-100 text-body" id="tab-sub-citas{{ p.id_proyecto }}" data-bs-toggle="pill" data-bs-target="#sub-citas{{ p.id_proyecto }}" type="button" role="tab">
+              <i class="bi bi-calendar-event me-1"></i> Sesiones de Asesoría y Firmas
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          
+          <!-- SUB-PESTAÑA A: COMPROMISOS / TAREAS DEL ALUMNO -->
+          <div class="tab-pane fade show active" id="sub-tareas{{ p.id_proyecto }}" role="tabpanel">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-3">Tarea / Compromiso</th>
+                    <th>Responsable</th>
+                    <th>Fecha Límite</th>
+                    <th>Origen</th>
+                    <th>Estado</th>
+                    <th class="text-end pe-3">Acción Dictamen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for m in p.minutas.all %}
+                    {% for ac in m.acuerdos.all %}
+                      <tr>
+                        <td class="ps-3 fw-semibold text-body">{{ ac.descripcion_tarea }}</td>
+                        <td><span class="badge bg-secondary">{{ ac.responsable }}</span></td>
+                        <td>
+                          <span class="text-body fw-bold small">{{ ac.fecha_limite|date:"d/m/Y" }}</span>
+                          {% if ac.estado != 'CUMPLIDO' and not ac.estado_cumplido and ac.fecha_limite < hoy %}
+                            <span class="badge bg-danger ms-1" style="font-size: 0.68rem;">Vencida</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if m.lugar_reunion == "Asignación directa de tareas" %}
+                            <span class="badge bg-info-subtle text-info border border-info" style="font-size: 0.7rem;">Tarea Directa</span>
+                          {% else %}
+                            <small class="text-secondary">Sesión {{ m.fecha_reunion|date:"d/m/Y" }}</small>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if ac.estado == 'CUMPLIDO' or ac.estado_cumplido %}
+                            <span class="badge bg-success-subtle text-success border border-success">Cumplido</span>
+                          {% else %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning">Pendiente</span>
+                          {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                          <a href="{% url 'alternar_cumplimiento_acuerdo' ac.id_acuerdo %}" class="btn btn-sm {% if ac.estado == 'CUMPLIDO' or ac.estado_cumplido %}btn-outline-secondary{% else %}btn-success{% endif %} rounded-pill px-3 shadow-sm">
+                            {% if ac.estado == 'CUMPLIDO' or ac.estado_cumplido %}
+                              <i class="bi bi-arrow-counterclockwise me-1"></i> Marcar Pendiente
+                            {% else %}
+                              <i class="bi bi-check2-circle me-1"></i> Validar Cumplida
+                            {% endif %}
+                          </a>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% empty %}
+                    <tr><td colspan="6" class="text-center py-4 text-secondary">No hay tareas o minutas asignadas a este estudiante.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SUB-PESTAÑA B: HISTORIAL DE SESIONES Y REPROGRAMACIÓN -->
+          <div class="tab-pane fade" id="sub-citas{{ p.id_proyecto }}" role="tabpanel">
+            <div class="d-flex flex-column gap-3">
+              {% for m in p.minutas.all %}
+                <div class="p-3 rounded-4 bg-body border shadow-sm">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 pb-2 border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-primary px-3 py-1 rounded-pill">Sesión {{ m.fecha_reunion|date:"d/m/Y" }}</span>
+                      {% if m.hora_reunion %}
+                        <small class="text-secondary fw-semibold">({{ m.hora_reunion|time:"H:i" }} hrs)</small>
+                      {% endif %}
+                      <span class="badge bg-secondary rounded-pill">
+                        <i class="bi {% if m.modalidad == 'PRESENCIAL' %}bi-geo-alt-fill{% else %}bi-camera-video-fill{% endif %} me-1"></i>
+                        {{ m.get_modalidad_display|default:m.modalidad }}
+                      </span>
+                      {% if m.version_revisada %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                          Revisó v{{ m.version_revisada.numero_version }}
+                        </span>
+                      {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center">
+                      <!-- Reprogramar Cita -->
+                      <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="collapse" data-bs-target="#collapseReprogramar{{ m.id_minuta }}">
+                        <i class="bi bi-calendar2-range me-1"></i> Reprogramar
+                      </button>
+
+                      <!-- Estado de Firma de Visita -->
+                      {% if m.firmada_alumno %}
+                        <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-1">
+                          <i class="bi bi-check2-all me-1"></i> Visita Firmada por Alumno
+                        </span>
+                      {% else %}
+                        <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill px-3 py-1">
+                          <i class="bi bi-clock me-1"></i> Pendiente Firma Alumno
+                        </span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <!-- Desplegable para reprogramar -->
+                  <div class="collapse mb-3" id="collapseReprogramar{{ m.id_minuta }}">
+                    <form method="post" action="{% url 'reprogramar_minuta' m.id_minuta %}" class="p-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-25">
+                      {% csrf_token %}
+                      <h6 class="fw-bold small text-body mb-2"><i class="bi bi-pencil-square me-1"></i>Actualizar fecha o lugar de la asesoría</h6>
+                      <div class="row g-2 align-items-center">
+                        <div class="col-md-4">
+                          <input type="date" name="nueva_fecha" class="form-control form-control-sm" value="{{ m.fecha_reunion|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-3">
+                          <input type="time" name="nueva_hora" class="form-control form-control-sm" value="{{ m.hora_reunion|time:'H:i' }}">
+                        </div>
+                        <div class="col-md-3">
+                          <input type="text" name="nuevo_lugar" class="form-control form-control-sm" placeholder="Cubículo / Enlace..." value="{{ m.lugar_reunion|default:'' }}">
+                        </div>
+                        <div class="col-md-2 text-end">
+                          <button type="submit" class="btn btn-sm btn-warning rounded-pill px-3 fw-semibold">Guardar</button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+
+                  <!-- Ubicación compacta o Botón para Reunión Virtual -->
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 p-2 px-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-25">
+                    <div class="d-flex align-items-center gap-2">
+                      <strong class="small text-secondary">Ubicación / Conexión:</strong>
+                      {% if 'http' in m.lugar_reunion or 'teams.microsoft.com' in m.lugar_reunion or 'meet.google.com' in m.lugar_reunion %}
+                        <a href="{{ m.lugar_reunion }}" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
+                          <i class="bi bi-camera-video-fill"></i>
+                          <span>Abrir Sesión en Teams / Meet</span>
+                          <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.68rem;"></i>
+                        </a>
+                      {% else %}
+                        <span class="small fw-semibold text-body">
+                          <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ m.lugar_reunion|default:"Cubículo del Asesor" }}
+                        </span>
+                      {% endif %}
+                    </div>
+
+                    {% if m.version_revisada %}
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.72rem;">
+                        Discute Borrador v{{ m.version_revisada.numero_version }}
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  <!-- Resumen de temas tratados -->
+                  <p class="small text-secondary mb-2">
+                    <strong class="text-body-secondary">Resumen:</strong> {{ m.resumen_temas }}
+                  </p>
+
+                  <!-- PDFs de bibliografía que el Asesor adjuntó -->
+                  {% if m.materiales.all %}
+                    <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+                      <small class="text-secondary fw-bold align-self-center">Fuentes Asignadas:</small>
+                      {% for mat in m.materiales.all %}
+                        <a href="{{ mat.archivo_pdf.url }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" style="font-size: 0.75rem;">
+                          <i class="bi bi-file-earmark-pdf me-1"></i> {{ mat.titulo }}
+                        </a>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              {% empty %}
+                <div class="text-center py-4 text-secondary">No hay sesiones de asesoría formalizadas aún con este estudiante.</div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="modal-footer border-top border-secondary border-opacity-25 pt-2">
+        <a href="{% url 'asesor_minuta' p.id_proyecto %}" class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold">
+          <i class="bi bi-plus-circle me-1"></i> Levantar Nueva Minuta / Tarea
+        </a>
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-4 btn-sm" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

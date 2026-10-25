@@ -1,0 +1,300 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Validación de Protocolos - Coordinación FCC BUAP{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+
+    <!-- Notificaciones del Sistema -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Encabezado de Sección -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold text-body mb-1">
+                <i class="bi bi-file-earmark-check-fill text-primary me-2"></i>Validación y Registro de Protocolos
+            </h3>
+            <p class="text-secondary small mb-0">Revisión de documentos PDF enviados por aspirantes y asignación oficial del Director de Tesis.</p>
+        </div>
+    </div>
+
+    <!-- Pestañas de Navegación (Tabs) -->
+    <ul class="nav nav-pills nav-fill p-2 rounded-4 shadow-sm mb-4 border bg-body-tertiary" id="protocolosTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold py-2 d-flex align-items-center justify-content-center gap-2" 
+                    id="por-validar-tab" 
+                    data-bs-toggle="pill" 
+                    data-bs-target="#tab-por-validar" 
+                    type="button" 
+                    role="tab">
+                <i class="bi bi-hourglass-split"></i>
+                <span>Por Validar</span>
+                <span class="badge bg-warning text-dark ms-1">{{ pendientes.count|default:0 }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2 d-flex align-items-center justify-content-center gap-2" 
+                    id="aceptados-tab" 
+                    data-bs-toggle="pill" 
+                    data-bs-target="#tab-aceptados" 
+                    type="button" 
+                    role="tab">
+                <i class="bi bi-check-circle-fill text-success"></i>
+                <span>Aceptados / En Desarrollo</span>
+                <span class="badge bg-success ms-1">{{ aprobados.count|default:0 }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Contenido de las Pestañas -->
+    <div class="tab-content" id="protocolosTabContent">
+
+        <!-- ========================================== -->
+        <!-- PESTAÑA 1: PROTOCOLOS POR VALIDAR (PENDIENTES) -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade show active" id="tab-por-validar" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+                <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center bg-body-tertiary">
+                    <h5 class="fw-bold mb-0 text-body">
+                        <i class="bi bi-inbox-fill text-warning me-2"></i>Propuestas Recibidas
+                    </h5>
+                    <span class="badge bg-warning text-dark">{{ pendientes.count|default:0 }} pendiente(s)</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if pendientes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Alumno / Matrícula</th>
+                                        <th>Título del Protocolo</th>
+                                        <th>Línea de Investigación</th>
+                                        <th>Director Propuesto</th>
+                                        <th>Documento</th>
+                                        <th class="text-end pe-4">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in pendientes %}
+                                        <tr>
+                                            <td class="ps-4">
+                                                <div class="fw-bold text-body">
+                                                    {{ p.alumno.primer_nombre }} {{ p.alumno.segundo_nombre|default:'' }} {{ p.alumno.apellido_paterno }} {{ p.alumno.apellido_materno }}
+                                                </div>
+                                                <small class="text-secondary">
+                                                    Mat: {{ p.alumno.datos_alumno.matricula|default:"S/M" }} &bull; {{ p.alumno.user.email }}
+                                                </small>
+                                            </td>
+                                            <td style="max-width: 260px;">
+                                                <span class="fw-semibold text-body d-block text-truncate" title="{{ p.titulo_tesis }}">
+                                                    {{ p.titulo_tesis }}
+                                                </span>
+                                                <small class="text-secondary">
+                                                    Convocatoria: {{ p.convocatoria.periodo|default:"Ordinaria" }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary bg-opacity-25 text-body border border-secondary border-opacity-25">
+                                                    {{ p.linea_investigacion|default:"No especificada" }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if p.asesor %}
+                                                    <span class="badge bg-info-subtle text-info border border-info">
+                                                        {{ p.asesor.datos_asesor.grado_academico|default:"Prof." }} {{ p.asesor.primer_nombre }} {{ p.asesor.apellido_paterno }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary text-white">Sin Director propuesto</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if p.archivo_protocolo %}
+                                                    <a href="{{ p.archivo_protocolo.url }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                        <i class="bi bi-file-earmark-pdf me-1"></i> Ver PDF
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-secondary small fst-italic">Sin archivo</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modalEvaluar{{ p.id_proyecto }}">
+                                                    <i class="bi bi-pencil-square me-1"></i> Evaluar
+                                                </button>
+                                            </td>
+                                        </tr>
+
+                                        <!-- MODAL INDIVIDUAL DE DICTAMEN / EVALUACIÓN -->
+                                        <div class="modal fade" id="modalEvaluar{{ p.id_proyecto }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <div class="modal-content border-0 rounded-4 shadow-lg" style="background-color: var(--bs-body-bg);">
+                                                    <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+                                                        <h5 class="modal-title fw-bold text-body">
+                                                            <i class="bi bi-shield-check text-primary me-2"></i>Dictamen de Protocolo de Investigación
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                                    </div>
+                                                    
+                                                    <div class="modal-body py-3">
+                                                        <!-- Ficha Resumen -->
+                                                        <div class="p-3 mb-3 rounded-3 bg-secondary bg-opacity-10 border border-secondary border-opacity-25">
+                                                            <div class="row g-2 small">
+                                                                <div class="col-sm-6">
+                                                                    <strong>Alumno:</strong> {{ p.alumno.primer_nombre }} {{ p.alumno.apellido_paterno }}
+                                                                </div>
+                                                                <div class="col-sm-6">
+                                                                    <strong>Matrícula:</strong> {{ p.alumno.datos_alumno.matricula|default:"S/M" }}
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <strong>Título:</strong> {{ p.titulo_tesis }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Formulario de Dictamen -->
+                                                        <form id="formDictamen{{ p.id_proyecto }}" method="post">
+                                                            {% csrf_token %}
+                                                            
+                                                            <!-- Ratificación o Cambio de Director -->
+                                                            <div class="mb-3 text-start">
+                                                                <label class="form-label small fw-semibold text-secondary">
+                                                                    Director de Tesis Oficial (Confirmar o Reasignar)
+                                                                </label>
+                                                                <select name="asesor_id" class="form-select">
+                                                                    {% for doc in asesores %}
+                                                                        <option value="{{ doc.id_usuario }}" {% if p.asesor and p.asesor.id_usuario == doc.id_usuario %}selected{% endif %}>
+                                                                            {{ doc.datos_asesor.grado_academico|default:"Prof." }} {{ doc.primer_nombre }} {{ doc.apellido_paterno }} (Emp: {{ doc.datos_asesor.numero_empleado|default:"S/N" }})
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </div>
+
+                                                            <!-- Observaciones de Coordinación -->
+                                                            <div class="mb-3 text-start">
+                                                                <label class="form-label small fw-semibold text-secondary">Observaciones / Comentarios Institucionales</label>
+                                                                <textarea name="comentarios" rows="3" class="form-control" placeholder="Escribe observaciones o motivos de corrección si se rechaza..."></textarea>
+                                                            </div>
+
+                                                            <!-- Acciones del Modal -->
+                                                            <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
+                                                                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">
+                                                                    Cerrar
+                                                                </button>
+                                                                
+                                                                <!-- Botón Solicitar Correcciones (Rechazar) -->
+                                                                <button type="submit" 
+                                                                        formaction="{% url 'resolver_protocolo' p.id_proyecto 'rechazar' %}" 
+                                                                        class="btn btn-outline-warning rounded-pill px-3 fw-semibold"
+                                                                        onclick="return confirm('¿Devolver este protocolo al alumno con observaciones?');">
+                                                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Solicitar Mejoras
+                                                                </button>
+
+                                                                <!-- Botón Aprobar Definitivamente -->
+                                                                <button type="submit" 
+                                                                        formaction="{% url 'resolver_protocolo' p.id_proyecto 'aprobar' %}" 
+                                                                        class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm"
+                                                                        onclick="return confirm('¿Aprobar formalmente el protocolo e iniciar el proyecto?');">
+                                                                    <i class="bi bi-check-circle-fill me-1"></i> Aprobar Protocolo
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-secondary">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                            <h6 class="fw-bold">No hay protocolos pendientes de dictamen en este momento</h6>
+                            <p class="small mb-0">Las propuestas registradas por los estudiantes durante la convocatoria aparecerán aquí para su validación.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PESTAÑA 2: PROTOCOLOS ACEPTADOS / EN DESARROLLO -->
+        <!-- ========================================== -->
+        <div class="tab-pane fade" id="tab-aceptados" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background-color: var(--bs-body-bg);">
+                <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center bg-body-tertiary">
+                    <h5 class="fw-bold mb-0 text-body">
+                        <i class="bi bi-patch-check-fill text-success me-2"></i>Proyectos Aprobados en Desarrollo
+                    </h5>
+                    <span class="badge bg-success">{{ aprobados.count|default:0 }} activo(s)</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if aprobados %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Alumno</th>
+                                        <th>Matrícula</th>
+                                        <th>Título de la Tesis</th>
+                                        <th>Director Asignado</th>
+                                        <th>Fecha de Aprobación</th>
+                                        <th class="text-end pe-4">Expediente</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in aprobados %}
+                                        <tr>
+                                            <td class="ps-4 fw-semibold text-body">
+                                                {{ p.alumno.primer_nombre }} {{ p.alumno.apellido_paterno }} {{ p.alumno.apellido_materno }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary bg-opacity-25 text-body border border-secondary border-opacity-25">
+                                                    {{ p.alumno.datos_alumno.matricula|default:"S/M" }}
+                                                </span>
+                                            </td>
+                                            <td style="max-width: 300px;">
+                                                <span class="d-block text-truncate fw-semibold text-body" title="{{ p.titulo_tesis }}">
+                                                    {{ p.titulo_tesis }}
+                                                </span>
+                                                <small class="text-secondary">{{ p.linea_investigacion|default:"Línea general" }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary-subtle text-primary border border-primary border-opacity-25">
+                                                    {{ p.asesor.datos_asesor.grado_academico|default:"Prof." }} {{ p.asesor.primer_nombre }} {{ p.asesor.apellido_paterno }}
+                                                </span>
+                                            </td>
+                                            <td>{{ p.fecha_dictamen_coordinador|date:"d/m/Y"|default:"Registrado" }}</td>
+                                            <td class="text-end pe-4">
+                                                <a href="{% url 'coordinador_ver_expediente' p.alumno.id_usuario %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                    <i class="bi bi-folder2-open me-1"></i> Expediente
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-5 text-center text-secondary">
+                            <i class="bi bi-folder-x fs-1 d-block mb-2 opacity-50"></i>
+                            <h6 class="fw-bold">Aún no hay protocolos aprobados formalmente</h6>
+                            <p class="small mb-0">Los proyectos evaluados y aceptados pasarán a este directorio para su seguimiento.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

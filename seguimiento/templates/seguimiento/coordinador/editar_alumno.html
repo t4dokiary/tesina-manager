@@ -1,0 +1,120 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Modificar Datos de Alumno - Coordinación{% endblock %}
+
+{% block contenido %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <div class="fs-1 text-primary"><i class="bi bi-person-gear"></i></div>
+                    <div>
+                        <h4 class="fw-bold mb-0">Modificar Datos de Alumno</h4>
+                        <small class="text-muted">Editando la cuenta de: <strong>{{ alumno.primer_nombre }} {{ alumno.apellido_paterno }}</strong></small>
+                    </div>
+                </div>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger small">
+                        Por favor revisa los campos señalados antes de guardar los cambios.
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <h6 class="fw-bold text-primary mb-3">Acceso y Credenciales</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small">Correo institucional</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Asignar nueva contraseña</label>
+                            <div class="input-group">
+                                {{ form.nueva_password }}
+                                <button class="btn btn-outline-secondary btn-toggle-pass" type="button" title="Mostrar u ocultar">
+                                    <i class="bi bi-eye icono-ojo"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1">Solo si el alumno olvidó su clave</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Confirmar nueva contraseña</label>
+                            <div class="input-group">
+                                {{ form.confirmar_password }}
+                                <button class="btn btn-outline-secondary btn-toggle-pass" type="button" title="Mostrar u ocultar">
+                                    <i class="bi bi-eye icono-ojo"></i>
+                                </button>
+                            </div>
+                            {% if form.confirmar_password.errors %}
+                                <div class="text-danger small">{{ form.confirmar_password.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-primary mb-3 border-top pt-3">Información Escolar y Personal</h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Primer Nombre</label>
+                            {{ form.primer_nombre }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Segundo Nombre (opcional)</label>
+                            {{ form.segundo_nombre }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Apellido Paterno</label>
+                            {{ form.apellido_paterno }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">Apellido Materno</label>
+                            {{ form.apellido_materno }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small">Matrícula Escolar</label>
+                            {{ form.matricula }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'coordinador_dashboard' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary fw-semibold">
+                            <i class="bi bi-check2-circle me-1"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    const pass1 = document.querySelector('input[name="nueva_password"]');
+    const pass2 = document.querySelector('input[name="confirmar_password"]');
+    const botones = document.querySelectorAll('.btn-toggle-pass');
+    const iconos = document.querySelectorAll('.icono-ojo');
+
+    botones.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const mostrar = pass1.type === 'password';
+            const nuevoTipo = mostrar ? 'text' : 'password';
+
+            if (pass1) pass1.type = nuevoTipo;
+            if (pass2) pass2.type = nuevoTipo;
+
+            iconos.forEach(icono => {
+                icono.className = mostrar ? 'bi bi-eye-slash icono-ojo' : 'bi bi-eye icono-ojo';
+            });
+        });
+    });
+</script>
+{% endblock %}

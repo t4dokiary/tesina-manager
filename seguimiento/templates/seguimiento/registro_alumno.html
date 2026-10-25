@@ -1,0 +1,139 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Registro de Alumno - TesisManager FCC BUAP{% endblock %}
+
+{% block contenido %}
+<div class="container py-5 d-flex justify-content-center align-items-center">
+  <div class="auth-card p-4 p-md-5" style="max-width: 680px;">
+    
+    <!-- Encabezado con Icono -->
+    <div class="text-center mb-4">
+      <div class="d-inline-flex p-3 rounded-circle bg-primary bg-opacity-10 text-primary mb-3 border border-primary border-opacity-25 shadow-sm">
+        <i class="bi bi-person-plus-fill fs-2"></i>
+      </div>
+      <h3 class="fw-bold mb-1 text-body">Registro de Alumno de Posgrado</h3>
+      <p class="text-secondary small">Alta de expediente académico para el seguimiento de tesis.</p>
+    </div>
+
+    <!-- Mensajes del Sistema -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 py-2 px-3 small" role="alert">
+          <i class="bi bi-info-circle-fill me-1"></i> {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Credenciales -->
+      <div class="auth-section-title">
+        <i class="bi bi-shield-lock-fill me-1"></i> Datos de Acceso
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Nombre de usuario</label>
+          {{ form.username }}
+          {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Correo institucional</label>
+          {{ form.email }}
+          {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Contraseña</label>
+          <div class="input-group">
+            {{ form.password }}
+            <button class="btn password-toggle-btn px-3" type="button" onclick="alternarVisibilidad('id_password_alumno', 'ojo_pass_alumno')" title="Mostrar u ocultar contraseña">
+              <i class="bi bi-eye" id="ojo_pass_alumno"></i>
+            </button>
+          </div>
+          {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Confirmar contraseña</label>
+          <div class="input-group">
+            {{ form.confirmar_password }}
+            <button class="btn password-toggle-btn px-3" type="button" onclick="alternarVisibilidad('id_confirm_password_alumno', 'ojo_confirm_alumno')" title="Mostrar u ocultar contraseña">
+              <i class="bi bi-eye" id="ojo_confirm_alumno"></i>
+            </button>
+          </div>
+          {% if form.confirmar_password.errors %}<div class="text-danger small mt-1">{{ form.confirmar_password.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <!-- Datos Personales y Escolares -->
+      <div class="auth-section-title">
+        <i class="bi bi-person-vcard-fill me-1"></i> Información Personal y Matrícula
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Primer Nombre</label>
+          {{ form.primer_nombre }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Segundo Nombre (opcional)</label>
+          {{ form.segundo_nombre }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Apellido Paterno</label>
+          {{ form.apellido_paterno }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Apellido Materno</label>
+          {{ form.apellido_materno }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Matrícula</label>
+          {{ form.matricula }}
+          {% if form.matricula.errors %}<div class="text-danger small mt-1">{{ form.matricula.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary">Teléfono (opcional)</label>
+          {{ form.telefono }}
+        </div>
+      </div>
+
+      <!-- Botón de Registro -->
+      <button type="submit" class="btn btn-auth-primary w-100 mb-3 d-flex justify-content-center align-items-center gap-2">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Completar Registro de Alumno</span>
+      </button>
+
+      <!-- Alternativa de Acceso y Solicitud Asesor -->
+      <div class="text-center pt-3 border-top border-secondary border-opacity-25">
+        <span class="small text-secondary d-block mb-2">¿Ya tienes una cuenta activa o eres docente?</span>
+        <div class="d-flex justify-content-center gap-3">
+          <a href="{% url 'login' %}" class="small text-decoration-none fw-semibold">Iniciar Sesión</a>
+          <span class="text-secondary opacity-50">•</span>
+          <a href="{% url 'registro_asesor' %}" class="small text-decoration-none text-info fw-semibold">Registro de Asesor Docente</a>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+  function alternarVisibilidad(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icono = document.getElementById(iconId);
+    if (!input || !icono) return;
+
+    if (input.type === 'password') {
+      input.type = 'text';
+      icono.classList.remove('bi-eye');
+      icono.classList.add('bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icono.classList.remove('bi-eye-slash');
+      icono.classList.add('bi-eye');
+    }
+  }
+</script>
+{% endblock %}

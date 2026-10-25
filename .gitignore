@@ -1,0 +1,31 @@
+# Archivos subidos por usuarios y documentos de tesis
+/media/
+/protocolos/
+
+# Entorno virtual y archivos generados por Python
+/venv/
+__pycache__/
+*.py[cod]
+
+# Variables de entorno y secretos locales
+.env
+.env.*
+!.env.example
+
+# Bases de datos y respaldos locales
+*.sqlite3
+*.db
+*.sql
+*.dump
+*.bak
+
+# Archivos generados por Django y herramientas de desarrollo
+/staticfiles/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Registros y archivos temporales
+*.log
+*.tmp
+*.temp

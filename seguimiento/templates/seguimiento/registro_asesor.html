@@ -1,0 +1,123 @@
+{% extends 'seguimiento/base.html' %}
+
+{% block titulo %}Solicitud de Cuenta Asesor - TesisManager FCC{% endblock %}
+
+{% block contenido %}
+<div class="container py-5 d-flex justify-content-center align-items-center">
+  <div class="card shadow-lg border-0 rounded-4 p-4 p-md-5" style="max-width: 650px; width: 100%; background-color: var(--bs-body-bg);">
+    
+    <!-- Encabezado con aviso de validación -->
+    <div class="text-center mb-4">
+      <div class="d-inline-flex p-3 rounded-circle bg-warning bg-opacity-10 text-warning mb-3">
+        <i class="bi bi-person-badge-fill fs-2"></i>
+      </div>
+      <h3 class="fw-bold mb-1 text-body">Registro de Asesor Docente</h3>
+      <p class="text-body-secondary small mb-2">Solicitud de alta para directores y revisores de tesis.</p>
+      <div class="alert alert-info py-2 px-3 small border-0 rounded-3 text-start">
+        <i class="bi bi-info-circle-fill me-1"></i> 
+        <strong>Validación académica requerida:</strong> Tu cuenta se mantendrá inactiva hasta que la Coordinación verifique tu número de trabajador.
+      </div>
+    </div>
+
+    <!-- Mensajes generales del sistema -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-3 small mb-3" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Errores generales del formulario -->
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger py-2 px-3 small border-0 rounded-3 mb-3">
+        {% for error in form.non_field_errors %}
+          <div><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Credenciales -->
+      <h6 class="text-primary fw-bold mb-3 border-bottom pb-2">
+        <i class="bi bi-shield-lock-fill me-1"></i> Credenciales de Acceso
+      </h6>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Nombre de usuario *</label>
+          {{ form.username }}
+          {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Correo institucional *</label>
+          {{ form.email }}
+          {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Contraseña *</label>
+          {{ form.password }}
+          {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Confirmar contraseña *</label>
+          {{ form.confirmar_password }}
+          {% if form.confirmar_password.errors %}<div class="text-danger small mt-1">{{ form.confirmar_password.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <!-- Datos Académicos -->
+      <h6 class="text-primary fw-bold mb-3 border-bottom pb-2">
+        <i class="bi bi-mortarboard-fill me-1"></i> Información Académica y Personal
+      </h6>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Primer Nombre *</label>
+          {{ form.primer_nombre }}
+          {% if form.primer_nombre.errors %}<div class="text-danger small mt-1">{{ form.primer_nombre.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Segundo Nombre (opcional)</label>
+          {{ form.segundo_nombre }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Apellido Paterno *</label>
+          {{ form.apellido_paterno }}
+          {% if form.apellido_paterno.errors %}<div class="text-danger small mt-1">{{ form.apellido_paterno.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Apellido Materno *</label>
+          {{ form.apellido_materno }}
+          {% if form.apellido_materno.errors %}<div class="text-danger small mt-1">{{ form.apellido_materno.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">N.º de Trabajador / Empleado *</label>
+          {{ form.numero_empleado }}
+          {% if form.numero_empleado.errors %}<div class="text-danger small mt-1">{{ form.numero_empleado.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Grado Académico *</label>
+          {{ form.grado_academico }}
+          {% if form.grado_academico.errors %}<div class="text-danger small mt-1">{{ form.grado_academico.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Área de Especialidad / Línea de Investigación</label>
+          {{ form.area_especialidad }}
+        </div>
+      </div>
+
+      <div class="d-grid gap-2 mb-3">
+        <button type="submit" class="btn btn-primary py-2 fw-semibold rounded-pill shadow-sm">
+          <i class="bi bi-send-fill me-1"></i> Enviar Solicitud de Registro
+        </button>
+        <a href="{% url 'login' %}" class="btn btn-outline-secondary py-2 fw-semibold rounded-pill">
+          Volver al Inicio de Sesión
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

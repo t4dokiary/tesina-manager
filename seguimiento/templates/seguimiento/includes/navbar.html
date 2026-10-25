@@ -1,0 +1,251 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-buap shadow-sm py-2">
+  <div class="container-fluid px-4">
+    <!-- Logotipo Institucional -->
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{% url 'index' %}">
+      <i class="bi bi-mortarboard-fill fs-4 text-buap-cyan"></i>
+      <span>TesisManager <small class="fw-normal opacity-75 fs-6">FCC BUAP</small></span>
+    </a>
+
+    <!-- Botón Toggle Móvil -->
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Navegación">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="menuPrincipal">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center">
+        {% if user.is_authenticated %}
+
+          {# --- ROL ALUMNO --- #}
+          {% if user.perfil.tipo_usuario == 'ALUMNO' %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'alumno_dashboard' %}active text-white fw-bold{% endif %}" href="{% url 'alumno_dashboard' %}">
+                <i class="bi bi-house-door-fill me-1"></i> Mi Proyecto
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'alumno_entregas' %}active text-white fw-bold{% endif %}" href="{% url 'alumno_entregas' %}">
+                <i class="bi bi-file-earmark-arrow-up-fill me-1"></i> Subir PDF
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'alumno_acuerdos' %}active text-white fw-bold{% endif %}" href="{% url 'alumno_acuerdos' %}">
+                <i class="bi bi-check2-square me-1"></i> Mis Acuerdos
+              </a>
+            </li>
+
+          {# --- ROL ASESOR --- #}
+          {% elif user.perfil.tipo_usuario == 'ASESOR' %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'asesor_dashboard' %}active text-white fw-bold{% endif %}" href="{% url 'asesor_dashboard' %}">
+                <i class="bi bi-people-fill me-1"></i> Mis Tesistas
+              </a>
+            </li>
+
+            <!-- REGISTRAR MINUTA -->
+            {% if proyecto %}
+              {# Caso 1: Ya estás dentro de un alumno (en revisión o minuta) #}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'asesor_minuta' %}active text-white fw-bold{% endif %}" href="{% url 'asesor_minuta' proyecto.id_proyecto %}">
+                  <i class="bi bi-journal-plus me-1"></i> Registrar Minuta
+                </a>
+              </li>
+            {% elif proyectos %}
+              {# Caso 2: Estás en el panel general y tienes alumnos #}
+              {% if proyectos.count == 1 %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.resolver_match.url_name == 'asesor_minuta' %}active text-white fw-bold{% endif %}" href="{% url 'asesor_minuta' proyectos.first.id_proyecto %}">
+                    <i class="bi bi-journal-plus me-1"></i> Registrar Minuta
+                  </a>
+                </li>
+              {% else %}
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'asesor_minuta' %}active text-white fw-bold{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-journal-plus me-1"></i> Registrar Minuta
+                  </a>
+                  <ul class="dropdown-menu shadow border-0 rounded-3">
+                    {% for p in proyectos %}
+                      <li>
+                        <a class="dropdown-item small" href="{% url 'asesor_minuta' p.id_proyecto %}">
+                          <i class="bi bi-person me-1"></i> {{ p.alumno.primer_nombre }} {{ p.alumno.apellido_paterno }}
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </li>
+              {% endif %}
+            {% else %}
+              {# Caso 3: Realmente no hay tesistas asignados #}
+              <li class="nav-item">
+                <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modalAvisoSinTesistas">
+                  <i class="bi bi-journal-plus me-1"></i> Registrar Minuta
+                </a>
+              </li>
+            {% endif %}
+
+            <!-- REVISIONES PDF -->
+            {% if proyecto %}
+              {# Caso 1: Ya estás dentro de un alumno (en revisión o minuta) #}
+              <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'asesor_revision' %}active text-white fw-bold{% endif %}" href="{% url 'asesor_revision' proyecto.id_proyecto %}">
+                  <i class="bi bi-file-earmark-pdf-fill me-1"></i> Revisiones PDF
+                </a>
+              </li>
+            {% elif proyectos %}
+              {# Caso 2: Estás en el panel general y tienes alumnos #}
+              {% if proyectos.count == 1 %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.resolver_match.url_name == 'asesor_revision' %}active text-white fw-bold{% endif %}" href="{% url 'asesor_revision' proyectos.first.id_proyecto %}">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Revisiones PDF
+                  </a>
+                </li>
+              {% else %}
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'asesor_revision' %}active text-white fw-bold{% endif %}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Revisiones PDF
+                  </a>
+                  <ul class="dropdown-menu shadow border-0 rounded-3">
+                    {% for p in proyectos %}
+                      <li>
+                        <a class="dropdown-item small" href="{% url 'asesor_revision' p.id_proyecto %}">
+                          <i class="bi bi-person me-1"></i> {{ p.alumno.primer_nombre }} {{ p.alumno.apellido_paterno }}
+                        </a>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </li>
+              {% endif %}
+            {% else %}
+              {# Caso 3: Realmente no hay tesistas asignados #}
+              <li class="nav-item">
+                <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#modalAvisoSinTesistas">
+                  <i class="bi bi-file-earmark-pdf-fill me-1"></i> Revisiones PDF
+                </a>
+              </li>
+            {% endif %}
+
+          {# --- ROL COORDINADOR --- #}
+          {% elif user.perfil.tipo_usuario == 'COORDINADOR' %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'coordinador_dashboard' %}active text-white fw-bold{% endif %}" href="{% url 'coordinador_dashboard' %}">
+                <i class="bi bi-speedometer2 me-1"></i> Monitoreo General
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'coordinador_convocatorias' %}active text-white fw-bold{% endif %}" href="{% url 'coordinador_convocatorias' %}">
+                <i class="bi bi-calendar-event-fill me-1"></i> Convocatorias y Fechas
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'coordinador_validar_protocolos' %}active text-white fw-bold{% endif %}" href="{% url 'coordinador_validar_protocolos' %}">
+                <i class="bi bi-file-earmark-check-fill me-1"></i> Validar Protocolos
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text-warning fw-semibold {% if request.resolver_match.url_name == 'coordinador_alertas' %}active text-white border-bottom border-warning border-2{% endif %}" href="{% url 'coordinador_alertas' %}">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> Alertas (>30 días)
+              </a>
+            </li>
+          {% endif %}
+
+        {% endif %}
+      </ul>
+
+      <!-- Lado Derecho: Selector de Tema + Acceso de Usuario -->
+      <div class="d-flex align-items-center gap-2 mt-2 mt-lg-0">
+        <!-- Selector Dinámico de Tema -->
+        <div class="dropdown">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle rounded-pill px-3 d-flex align-items-center gap-1 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Cambiar tema visual">
+            <i class="bi bi-circle-half"></i>
+            <span class="d-none d-md-inline">Tema</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2" type="button" onclick="setTema('light')">
+                <i class="bi bi-sun-fill text-warning fs-6"></i>
+                <span>Modo Claro</span>
+              </button>
+            </li>
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2" type="button" onclick="setTema('dark')">
+                <i class="bi bi-moon-stars-fill text-primary fs-6"></i>
+                <span>Modo Oscuro</span>
+              </button>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <button class="dropdown-item d-flex align-items-center gap-2" type="button" onclick="setTema('system')">
+                <i class="bi bi-display fs-6"></i>
+                <span>Ajuste del Sistema</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        {% if user.is_authenticated %}
+          <!-- Menú del Usuario -->
+          <div class="dropdown">
+            <button class="btn btn-light btn-sm fw-semibold text-primary px-3 shadow-sm rounded-pill dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle fs-6"></i>
+              <span>{{ user.first_name|default:user.username }}</span>
+              <span class="badge bg-primary text-white ms-1">{{ user.perfil.tipo_usuario|title }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+              <li class="px-3 py-2 border-bottom">
+                <small class="text-body-secondary d-block">Sesión iniciada como:</small>
+                <span class="fw-bold small text-body d-block text-truncate" style="max-width: 180px;">{{ user.email }}</span>
+              </li>
+              <li>
+                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{% url 'mi_perfil' %}">
+                  <i class="bi bi-sliders text-primary"></i>
+                  <span>Mi Perfil y Preferencias</span>
+                </a>
+              </li>
+              <li><hr class="dropdown-divider my-1"></li>
+              <li>
+                <form action="{% url 'logout' %}" method="post" class="m-0">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item py-2 text-danger d-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Cerrar Sesión</span>
+                  </button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        {% else %}
+          <a href="{% url 'login' %}" class="btn btn-light btn-sm fw-semibold text-primary px-3 shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Modal Informativo: Cuando no hay tesistas asignados -->
+<div class="modal fade" id="modalAvisoSinTesistas" tabindex="-1" aria-labelledby="modalAvisoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold text-body" id="modalAvisoLabel">
+          <i class="bi bi-info-circle-fill text-primary me-2"></i>Módulo en Espera de Asignación
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <div class="text-warning fs-1 mb-3">
+          <i class="bi bi-person-x-fill"></i>
+        </div>
+        <h6 class="fw-bold text-body mb-2">No tienes tesistas asignados en este momento</h6>
+        <p class="text-body-secondary small mb-0 px-3">
+          Para levantar minutas o calificar borradores en PDF, la Coordinación de Posgrado primero debe aprobar un protocolo y asignarte formalmente como Director de Tesis.
+        </p>
+      </div>
+      <div class="modal-footer border-top justify-content-center">
+        <button type="button" class="btn btn-primary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">
+          Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
