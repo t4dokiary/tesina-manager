@@ -1,10 +1,10 @@
 from datetime import date
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
+from django.db.models import Q
 
 from seguimiento.models import (
     PerfilUsuario,
@@ -23,164 +23,10 @@ from seguimiento.forms import (
     ConvocatoriaForm,
 )
 
-@login_required
-def coordinador_ver_expediente(request, id_perfil):
-    """
-    Ficha integral del expediente escolar para la Coordinación:
-    1. Datos del estudiante y protocolo inicial.
-    2. Historial de avances en PDF con mensajes del chat (CU02).
-    3. Minutas de asesoría y compromisos asignados (CU03).
-    """
-    perfil_coord = getattr(request.user, 'perfil', None)
-    if not perfil_coord or perfil_coord.tipo_usuario != 'COORDINADOR':
-        messages.error(request, 'Acceso restringido a la Coordinación.')
-        return redirect('index')
 
-    alumno_perfil = get_object_or_404(PerfilUsuario, id_usuario=id_perfil, tipo_usuario='ALUMNO')
-    proyecto = ProyectoTesis.objects.filter(alumno=alumno_perfil).first()
-
-    entregables = []
-    minutas = []
-
-    if proyecto:
-        # Traemos las versiones con sus mensajes precargados para el modal emergente
-        entregables = EntregableVersion.objects.filter(
-            proyecto=proyecto
-        ).prefetch_related('mensajes__emisor').order_by('-numero_version')
-        
-        minutas = MinutaAsesoria.objects.filter(
-            proyecto=proyecto
-        ).prefetch_related('acuerdos').order_by('-fecha_reunion')
-
-    return render(request, 'seguimiento/coordinador/expediente_alumno.html', {
-        'alumno': alumno_perfil,
-        'proyecto': proyecto,
-        'entregables': entregables,
-        'minutas': minutas,
-    })
-
-@login_required
-def finalizar_proyecto_tesis(request, id_proyecto):
-    """Permite al Coordinador dar por terminada la tesis al entregar la constancia."""
-    perfil = getattr(request.user, 'perfil', None)
-    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
-        messages.error(request, 'Acceso no autorizado.')
-        return redirect('index')
-
-    proyecto = get_object_or_404(ProyectoTesis, id_proyecto=id_proyecto)
-    proyecto.estado_proyecto = 'CONCLUIDO'
-    proyecto.save()
-    
-    messages.success(request, f'El proyecto de {proyecto.alumno.primer_nombre} {proyecto.alumno.apellido_paterno} se marcó como CONCLUIDO. Ha salido del monitoreo de inactividad.')
-    return redirect('coordinador_dashboard')
-
-@login_required
-def coordinador_alertas(request):
-    """CU04: Monitoreo exclusivo de alumnos activos con más de 30 días sin avance."""
-    perfil = getattr(request.user, 'perfil', None)
-    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
-        messages.error(request, 'Acceso restringido a la Coordinación.')
-        return redirect('index')
-
-    alumnos = PerfilUsuario.objects.filter(tipo_usuario='ALUMNO')
-    hoy = timezone.now().date()
-    alumnos_en_rezago = []
-
-    for al in alumnos:
-        proyecto = getattr(al, 'proyecto_tesis', None)
-        
-        # Ignorar por completo a quienes ya concluyeron o no están formalmente en desarrollo
-        if proyecto and proyecto.estado_proyecto == 'CONCLUIDO':
-            continue
-
-        ultimo_avance = proyecto.fecha_ultimo_avance if proyecto and proyecto.fecha_ultimo_avance else al.fecha_registro
-        dias = (hoy - ultimo_avance.date()).days
-
-        if dias > 30:
-            alumnos_en_rezago.append({
-                'perfil': al,
-                'matricula': al.datos_alumno.matricula if hasattr(al, 'datos_alumno') else 'S/M',
-                'proyecto': proyecto,
-                'ultimo_avance': ultimo_avance,
-                'dias_inactividad': dias,
-            })
-
-    alumnos_en_rezago.sort(key=lambda x: x['dias_inactividad'], reverse=True)
-
-    return render(request, 'seguimiento/coordinador/alertas.html', {
-        'alumnos_en_rezago': alumnos_en_rezago,
-    })
-
-@login_required
-def coordinador_validar_protocolos(request):
-    """Lista las propuestas de protocolo pendientes de revisión por la Coordinación."""
-    perfil = getattr(request.user, 'perfil', None)
-    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
-        messages.error(request, 'Acceso exclusivo para Coordinación.')
-        return redirect('index')
-
-    # Filtrar tanto por 'PENDIENTE' como por 'PROPUESTA' para evitar discrepancias
-    pendientes = ProyectoTesis.objects.filter(
-        estado_proyecto__in=['PENDIENTE', 'PROPUESTA']
-    ).select_related('alumno', 'asesor', 'convocatoria')
-
-    aprobados = ProyectoTesis.objects.filter(
-        estado_proyecto__in=['APROBADO', 'EN_DESARROLLO']
-    ).select_related('alumno', 'asesor', 'convocatoria')
-
-    asesores = PerfilUsuario.objects.filter(
-        tipo_usuario='ASESOR',
-        estado_registro='ACTIVO'
-    ).select_related('datos_asesor')
-
-    return render(request, 'seguimiento/coordinador/validar_protocolos.html', {
-        'pendientes': pendientes,
-        'aprobados': aprobados,
-        'asesores': asesores,
-    })
-
-
-@login_required
-def resolver_protocolo(request, id_proyecto, accion):
-    """Aprueba o rechaza el protocolo de tesis."""
-    perfil = getattr(request.user, 'perfil', None)
-    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
-        messages.error(request, 'Acceso exclusivo para Coordinación.')
-        return redirect('index')
-
-    proyecto = get_object_or_404(ProyectoTesis, id_proyecto=id_proyecto)
-
-    if request.method == 'POST':
-        observaciones = request.POST.get('comentarios', '').strip()
-        proyecto.observaciones_coordinador = observaciones
-
-        if accion == 'aprobar':
-            # Si el coordinador decide cambiar el asesor propuesto por el alumno, puede hacerlo opcionalmente
-            nuevo_asesor_id = request.POST.get('asesor_id')
-            if nuevo_asesor_id:
-                proyecto.asesor = get_object_or_404(PerfilUsuario, id_usuario=nuevo_asesor_id, tipo_usuario='ASESOR')
-
-            proyecto.estado_proyecto = 'APROBADO'
-            proyecto.fecha_dictamen_coordinador = date.today()
-            proyecto.fecha_ultimo_avance = date.today()
-            proyecto.save()
-            messages.success(request, f'Protocolo "{proyecto.titulo_tesis}" aprobado formalmente.')
-        elif accion == 'rechazar':
-            proyecto.estado_proyecto = 'RECHAZADO'
-            proyecto.fecha_dictamen_coordinador = date.today()
-            proyecto.save()
-            messages.warning(request, f'Protocolo devuelto con observaciones al alumno.')
-
-    return redirect('coordinador_validar_protocolos')
-
-from django.db.models import Q
-
-from django.db.models import Q
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.utils import timezone
-from seguimiento.models import PerfilUsuario, ProyectoTesis, Coordinador
+# =============================================================================
+# PANEL DE CONTROL GENERAL DE COORDINACIÓN (CU04)
+# =============================================================================
 
 @login_required
 def coordinador_dashboard(request):
@@ -204,18 +50,27 @@ def coordinador_dashboard(request):
         estado_registro='PENDIENTE'
     ).select_related('user', 'datos_asesor')
 
-    coordinadores_activos = PerfilUsuario.objects.filter(tipo_usuario='COORDINADOR').select_related('user', 'datos_coordinador')
+    coordinadores_activos = PerfilUsuario.objects.filter(
+        tipo_usuario='COORDINADOR'
+    ).select_related('user', 'datos_coordinador')
 
-    # 2. Directorio de alumnos y proyectos de tesis
-    alumnos_registrados = PerfilUsuario.objects.filter(tipo_usuario='ALUMNO').select_related('user', 'datos_alumno')
+    # 2. Directorio de alumnos y proyectos de tesis (Optimizado para evitar N+1 queries)
+    alumnos_registrados = PerfilUsuario.objects.filter(
+        tipo_usuario='ALUMNO'
+    ).select_related('user', 'datos_alumno')
+
+    # Diccionario en memoria con los proyectos existentes indexados por el id del alumno
+    proyectos_map = {
+        p.alumno_id: p 
+        for p in ProyectoTesis.objects.select_related('asesor').all()
+    }
+
     hoy = timezone.now().date()
     lista_alumnos = []
 
     for al in alumnos_registrados:
-        # Búsqueda directa pasando la instancia PerfilUsuario
-        proyecto = ProyectoTesis.objects.filter(alumno=al).select_related('asesor').first()
+        proyecto = proyectos_map.get(al.id_usuario)
 
-        # Matrícula del estudiante
         matricula_str = "S/M"
         if hasattr(al, 'datos_alumno') and al.datos_alumno:
             matricula_str = al.datos_alumno.matricula
@@ -229,7 +84,7 @@ def coordinador_dashboard(request):
             fecha_ref = al.fecha_registro.date() if hasattr(al, 'fecha_registro') else al.user.date_joined.date()
 
         dias_inactividad = max(0, (hoy - fecha_ref).days)
-        alerta = (dias_inactividad > 30) and (not proyecto or proyecto.estado_proyecto != 'CONCLUIDO')
+        alerta = (dias_inactividad > 30) and (not proyecto or proyecto.estado_proyecto != 'CONCLUIDO')[cite: 1, 2]
 
         lista_alumnos.append({
             'perfil': al,
@@ -247,6 +102,174 @@ def coordinador_dashboard(request):
         'lista_alumnos': lista_alumnos,
     })
 
+
+# =============================================================================
+# GESTIÓN Y VALIDACIÓN DE PROTOCOLOS DE TESIS
+# =============================================================================
+
+@login_required
+def coordinador_validar_protocolos(request):
+    """Lista las propuestas de protocolo pendientes de revisión por la Coordinación."""
+    perfil = getattr(request.user, 'perfil', None)
+    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
+        messages.error(request, 'Acceso exclusivo para Coordinación.')
+        return redirect('index')
+
+    pendientes = ProyectoTesis.objects.filter(
+        estado_proyecto__in=['PENDIENTE', 'PROPUESTA']
+    ).select_related('alumno', 'asesor', 'convocatoria')
+
+    aprobados = ProyectoTesis.objects.filter(
+        estado_proyecto__in=['APROBADO', 'EN_DESARROLLO']
+    ).select_related('alumno', 'asesor', 'convocatoria')
+
+    asesores = PerfilUsuario.objects.filter(
+        tipo_usuario='ASESOR',
+        cuenta_activa=True
+    ).exclude(estado_registro='PENDIENTE').select_related('datos_asesor')
+
+    return render(request, 'seguimiento/coordinador/validar_protocolos.html', {
+        'pendientes': pendientes,
+        'aprobados': aprobados,
+        'asesores': asesores,
+    })
+
+
+@login_required
+def resolver_protocolo(request, id_proyecto, accion):
+    """Aprueba o rechaza el protocolo de tesis."""
+    perfil = getattr(request.user, 'perfil', None)
+    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
+        messages.error(request, 'Acceso exclusivo para Coordinación.')
+        return redirect('index')
+
+    proyecto = get_object_or_404(ProyectoTesis, id_proyecto=id_proyecto)
+    hoy = timezone.now().date()
+
+    if request.method == 'POST':
+        observaciones = request.POST.get('comentarios', '').strip()
+        proyecto.observaciones_coordinador = observaciones
+
+        if accion == 'aprobar':
+            nuevo_asesor_id = request.POST.get('asesor_id')
+            if nuevo_asesor_id:
+                proyecto.asesor = get_object_or_404(PerfilUsuario, id_usuario=nuevo_asesor_id, tipo_usuario='ASESOR')
+
+            proyecto.estado_proyecto = 'APROBADO'
+            proyecto.fecha_dictamen_coordinador = hoy
+            proyecto.fecha_ultimo_avance = hoy
+            proyecto.save()
+            messages.success(request, f'Protocolo "{proyecto.titulo_tesis}" aprobado formalmente.')
+        elif accion == 'rechazar':
+            proyecto.estado_proyecto = 'RECHAZADO'
+            proyecto.fecha_dictamen_coordinador = hoy
+            proyecto.save()
+            messages.warning(request, f'Protocolo devuelto con observaciones al alumno.')
+
+    return redirect('coordinador_validar_protocolos')
+
+
+@login_required
+def coordinador_ver_expediente(request, id_perfil):
+    """Ficha integral del expediente escolar para la Coordinación (CU02, CU03)."""
+    perfil_coord = getattr(request.user, 'perfil', None)
+    if not perfil_coord or perfil_coord.tipo_usuario != 'COORDINADOR':
+        messages.error(request, 'Acceso restringido a la Coordinación.')
+        return redirect('index')
+
+    alumno_perfil = get_object_or_404(PerfilUsuario, id_usuario=id_perfil, tipo_usuario='ALUMNO')
+    proyecto = ProyectoTesis.objects.filter(alumno=alumno_perfil).first()
+
+    entregables = []
+    minutas = []
+
+    if proyecto:
+        entregables = EntregableVersion.objects.filter(
+            proyecto=proyecto
+        ).prefetch_related('mensajes__emisor').order_by('-numero_version')
+        
+        minutas = MinutaAsesoria.objects.filter(
+            proyecto=proyecto
+        ).prefetch_related('acuerdos').order_by('-fecha_reunion')
+
+    return render(request, 'seguimiento/coordinador/expediente_alumno.html', {
+        'alumno': alumno_perfil,
+        'proyecto': proyecto,
+        'entregables': entregables,
+        'minutas': minutas,
+    })
+
+
+@login_required
+def finalizar_proyecto_tesis(request, id_proyecto):
+    """Permite al Coordinador dar por terminada la tesis al entregar la constancia."""
+    perfil = getattr(request.user, 'perfil', None)
+    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
+        messages.error(request, 'Acceso no autorizado.')
+        return redirect('index')
+
+    proyecto = get_object_or_404(ProyectoTesis, id_proyecto=id_proyecto)
+    proyecto.estado_proyecto = 'CONCLUIDO'
+    proyecto.save()
+    
+    messages.success(request, f'El proyecto de {proyecto.alumno.primer_nombre} {proyecto.alumno.apellido_paterno} se marcó como CONCLUIDO.')
+    return redirect('coordinador_dashboard')
+
+
+@login_required
+def coordinador_alertas(request):
+    """CU04: Monitoreo exclusivo de alumnos activos con más de 30 días sin avance."""[cite: 1, 2]
+    perfil = getattr(request.user, 'perfil', None)
+    if not perfil or perfil.tipo_usuario != 'COORDINADOR':
+        messages.error(request, 'Acceso restringido a la Coordinación.')
+        return redirect('index')
+
+    alumnos = PerfilUsuario.objects.filter(
+        tipo_usuario='ALUMNO'
+    ).select_related('user', 'datos_alumno')
+
+    proyectos_map = {
+        p.alumno_id: p 
+        for p in ProyectoTesis.objects.all()
+    }
+
+    hoy = timezone.now().date()
+    alumnos_en_rezago = []
+
+    for al in alumnos:
+        proyecto = proyectos_map.get(al.id_usuario)
+        
+        if proyecto and proyecto.estado_proyecto == 'CONCLUIDO':
+            continue
+
+        if proyecto and proyecto.fecha_ultimo_avance:
+            ultimo_avance = proyecto.fecha_ultimo_avance
+            if hasattr(ultimo_avance, 'date'):
+                ultimo_avance = ultimo_avance.date()
+        else:
+            ultimo_avance = al.fecha_registro.date() if hasattr(al, 'fecha_registro') else al.user.date_joined.date()
+
+        dias = (hoy - ultimo_avance).days
+
+        if dias > 30:
+            alumnos_en_rezago.append({
+                'perfil': al,
+                'matricula': al.datos_alumno.matricula if hasattr(al, 'datos_alumno') and al.datos_alumno else 'S/M',
+                'proyecto': proyecto,
+                'ultimo_avance': ultimo_avance,
+                'dias_inactividad': dias,
+            })
+
+    alumnos_en_rezago.sort(key=lambda x: x['dias_inactividad'], reverse=True)
+
+    return render(request, 'seguimiento/coordinador/alertas.html', {
+        'alumnos_en_rezago': alumnos_en_rezago,
+    })
+
+
+# =============================================================================
+# ADMINISTRACIÓN DE USUARIOS, ROLES Y ACCESOS
+# =============================================================================
 
 @login_required
 def activar_asesor(request, id_perfil):
@@ -289,26 +312,33 @@ def coordinador_editar_asesor(request, id_perfil):
 
     docente_perfil = get_object_or_404(PerfilUsuario, id_usuario=id_perfil, tipo_usuario='ASESOR')
     docente_user = docente_perfil.user
-    docente_asesor = docente_perfil.datos_asesor
+    docente_asesor = getattr(docente_perfil, 'datos_asesor', None)
 
     if request.method == 'POST':
         form = EditarAsesorPorCoordinadorForm(request.POST)
         if form.is_valid():
             datos = form.cleaned_data
-            docente_user.email = datos['email']
+            nuevo_email = datos['email'].strip().lower()
+
+            if User.objects.filter(email__iexact=nuevo_email).exclude(pk=docente_user.pk).exists():
+                messages.error(request, 'Ese correo ya pertenece a otro usuario registrado.')
+                return render(request, 'seguimiento/coordinador/editar_asesor.html', {'form': form, 'docente': docente_perfil})
+
+            docente_user.email = nuevo_email
             if datos.get('nueva_password'):
                 docente_user.set_password(datos['nueva_password'])
             docente_user.save()
 
-            docente_perfil.primer_nombre = datos['primer_nombre']
-            docente_perfil.segundo_nombre = datos['segundo_nombre']
-            docente_perfil.apellido_paterno = datos['apellido_paterno']
-            docente_perfil.apellido_materno = datos['apellido_materno']
+            docente_perfil.primer_nombre = datos['primer_nombre'].strip()
+            docente_perfil.segundo_nombre = datos.get('segundo_nombre', '').strip()
+            docente_perfil.apellido_paterno = datos['apellido_paterno'].strip()
+            docente_perfil.apellido_materno = datos['apellido_materno'].strip()
             docente_perfil.save()
 
-            docente_asesor.numero_empleado = datos['numero_empleado']
-            docente_asesor.grado_academico = datos['grado_academico']
-            docente_asesor.save()
+            if docente_asesor:
+                docente_asesor.numero_empleado = datos['numero_empleado'].strip()
+                docente_asesor.grado_academico = datos['grado_academico']
+                docente_asesor.save()
 
             messages.success(request, f"Datos de {docente_perfil.primer_nombre} actualizados con éxito.")
             return redirect('coordinador_dashboard')
@@ -316,11 +346,11 @@ def coordinador_editar_asesor(request, id_perfil):
         form = EditarAsesorPorCoordinadorForm(initial={
             'email': docente_user.email,
             'primer_nombre': docente_perfil.primer_nombre,
-            'segundo_nombre': docente_perfil.segundo_nombre,
+            'segundo_nombre': docente_perfil.segundo_nombre or '',
             'apellido_paterno': docente_perfil.apellido_paterno,
             'apellido_materno': docente_perfil.apellido_materno,
-            'numero_empleado': docente_asesor.numero_empleado,
-            'grado_academico': docente_asesor.grado_academico,
+            'numero_empleado': docente_asesor.numero_empleado if docente_asesor else '',
+            'grado_academico': docente_asesor.grado_academico if docente_asesor else '',
         })
 
     return render(request, 'seguimiento/coordinador/editar_asesor.html', {
@@ -338,25 +368,32 @@ def coordinador_editar_alumno(request, id_perfil):
 
     alumno_perfil = get_object_or_404(PerfilUsuario, id_usuario=id_perfil, tipo_usuario='ALUMNO')
     alumno_user = alumno_perfil.user
-    alumno_datos = alumno_perfil.datos_alumno
+    alumno_datos = getattr(alumno_perfil, 'datos_alumno', None)
 
     if request.method == 'POST':
         form = EditarAlumnoPorCoordinadorForm(request.POST)
         if form.is_valid():
             datos = form.cleaned_data
-            alumno_user.email = datos['email']
+            nuevo_email = datos['email'].strip().lower()
+
+            if User.objects.filter(email__iexact=nuevo_email).exclude(pk=alumno_user.pk).exists():
+                messages.error(request, 'Ese correo ya pertenece a otro usuario registrado.')
+                return render(request, 'seguimiento/coordinador/editar_alumno.html', {'form': form, 'alumno': alumno_perfil})
+
+            alumno_user.email = nuevo_email
             if datos.get('nueva_password'):
                 alumno_user.set_password(datos['nueva_password'])
             alumno_user.save()
 
-            alumno_perfil.primer_nombre = datos['primer_nombre']
-            alumno_perfil.segundo_nombre = datos['segundo_nombre']
-            alumno_perfil.apellido_paterno = datos['apellido_paterno']
-            alumno_perfil.apellido_materno = datos['apellido_materno']
+            alumno_perfil.primer_nombre = datos['primer_nombre'].strip()
+            alumno_perfil.segundo_nombre = datos.get('segundo_nombre', '').strip()
+            alumno_perfil.apellido_paterno = datos['apellido_paterno'].strip()
+            alumno_perfil.apellido_materno = datos['apellido_materno'].strip()
             alumno_perfil.save()
 
-            alumno_datos.matricula = datos['matricula']
-            alumno_datos.save()
+            if alumno_datos:
+                alumno_datos.matricula = datos['matricula'].strip()
+                alumno_datos.save()
 
             messages.success(request, f"Datos del alumno {alumno_perfil.primer_nombre} actualizados con éxito.")
             return redirect('coordinador_dashboard')
@@ -364,10 +401,10 @@ def coordinador_editar_alumno(request, id_perfil):
         form = EditarAlumnoPorCoordinadorForm(initial={
             'email': alumno_user.email,
             'primer_nombre': alumno_perfil.primer_nombre,
-            'segundo_nombre': alumno_perfil.segundo_nombre,
+            'segundo_nombre': alumno_perfil.segundo_nombre or '',
             'apellido_paterno': alumno_perfil.apellido_paterno,
             'apellido_materno': alumno_perfil.apellido_materno,
-            'matricula': alumno_datos.matricula,
+            'matricula': alumno_datos.matricula if alumno_datos else '',
         })
 
     return render(request, 'seguimiento/coordinador/editar_alumno.html', {
@@ -464,6 +501,10 @@ def cambiar_rol_usuario(request, id_perfil):
 
     return redirect('coordinador_dashboard')
 
+
+# =============================================================================
+# ADMINISTRACIÓN DE CONVOCATORIAS OFICIALES
+# =============================================================================
 
 @login_required
 def coordinador_convocatorias(request):
