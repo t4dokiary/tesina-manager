@@ -1,3 +1,7 @@
+import pymysql
+
+pymysql.install_as_MySQLdb()
+
 from django.db.backends.mysql.base import DatabaseWrapper
 from django.db.backends.mysql.features import DatabaseFeatures
 

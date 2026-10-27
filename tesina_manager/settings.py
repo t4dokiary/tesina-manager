@@ -27,6 +27,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # API REST
+    'rest_framework',
+    
     # App principal de la plataforma
     'seguimiento',
 ]
