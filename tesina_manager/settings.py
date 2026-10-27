@@ -20,9 +20,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 STATIC_URL = 'static/'
 
 # Agrega esta línea si no existe:
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+# STATICFILES_DIRS = [
+#     BASE_DIR / 'static',
+# ]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'tesina_manager.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'tesis_db',
+        'NAME': 'tesina_db',
         'USER': 'root',
         'PASSWORD': '',
         'HOST': '127.0.0.1',  # <-- Debe ser '127.0.0.1', NO 'localhost'
